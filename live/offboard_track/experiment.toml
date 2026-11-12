@@ -1,0 +1,41 @@
+[[experiments]]
+name = "case_study_2_offboard"
+vehicle = "steppeeagle" # Vehicle name to target
+[experiments.mission]
+# Uploaded and sent to start each trial
+file = "offboard_only_tracking"
+# Whether or not to start without prompting for ENTER
+auto = false
+# If duration > 0, will run the mission for the given duration (in seconds)
+# before stopping; otherwise, will prompt the user to press ENTER once done
+duration = 60
+[experiments.netsim]
+# Network profiles, in order. heisenberg_case_study_2_offboard.toml (480p) is
+# used until limited, which uses heisenberg_case_study_2_offboard_limited.toml
+# (240p); limited runs last so its config doesn't carry over to the others
+profiles = ["ambient", "delay", "limited"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+# Failpoints for the malicious profile, as [event_time, dead_time] pairs in
+# seconds from the start of the run: the port is killed from event_time for
+# dead_time seconds. Ignored by every other profile.
+failpoints = [] # e.g. [[30, 10], [90, 5]]
+# Extra netsim flags, passed through as is (optional)
+# args = ["--direction", "egress", "--seed", "1"]
+
+# Each daemon's config is found by its name and the experiment's: for each
+# profile, <name>_<experiment>_<profile>.toml (e.g.
+# heisenberg_case_study_2_offboard_normal.toml) is used if it exists; otherwise
+# the config used for the previous profile carries over, or, if there is none
+# yet, <name>_<experiment>.toml, or else <name>.toml.
+[daemons]
+[daemons.lambda]
+orchestrator = true
+prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
+[daemons.heisenberg]
+prefix = "root@heisenberg:" # SSH/RSYNC prefix
+
+[results] # The sources will be destroyed (uses rsync --remove-source-files)
+dets = "lambda/root/.local/share/steeleagle/files/detection_log/*"
+[catalogs] # The sources will be copied

@@ -1,0 +1,48 @@
+# fermi for normal and limited: whole frames are sent (flow_full.toml)
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "fermi"
+orchestrator = "lambda2:9000"
+
+# Replays street.mp4 (already in fermi's files directory) once, from SetDataflow on
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+[services.plugin.args]
+video = "street.mp4"
+no_loop = true
+
+# YOLO on the HTP, base COCO model (plugin default), early discard of frames with no person
+[[services]]
+name = "yolo"
+type = "engine"
+[services.plugin]
+plugin = "detection-qnn"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+[services.plugin.args]
+only_classes = ["person"]
+early_discard = true
+
+# Saves every frame yolo forwards to /root/.local/share/steeleagle/files/<fermi ip>.detection_log/{raw,out}
+[[services]]
+name = "detection_log"
+type = "engine"
+[services.plugin]
+plugin = "detection-log"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+[services.plugin.args]
+detector = "yolo"
+refresh = true
+
+# Pass-through: the 720p frames are sent on unchanged
+[[services]]
+name = "jpeg_encoder"
+type = "engine"
+[services.plugin]
+plugin = "jpeg_encoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"

@@ -1,0 +1,49 @@
+# rgb -> rescale (720p) -> cliped -> webp_encoder ==network==> webp_decoder -> verifier (lambda2)
+
+[[producers]]
+name = "rgb"
+
+[[engines]]
+name = "rescale"
+location = "local"
+
+[[engines]]
+name = "cliped"
+location = "local"
+
+[[engines]]
+name = "webp_encoder"
+location = "local"
+
+[[engines]]
+name = "webp_decoder"
+location = "remote"
+
+[[engines]]
+name = "verifier"
+location = "remote"
+
+[[edges]]
+from = "rgb"
+to = "rescale"
+timeout = "2s"
+
+[[edges]]
+from = "rescale"
+to = "cliped"
+timeout = "2s"
+
+[[edges]]
+from = "cliped"
+to = "webp_encoder"
+timeout = "2s"
+
+[[edges]]
+from = "webp_encoder"
+to = "webp_decoder"
+timeout = "5s"
+
+[[edges]]
+from = "webp_decoder"
+to = "verifier"
+timeout = "5s"

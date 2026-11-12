@@ -1,0 +1,52 @@
+[daemon]
+  cert = ""
+  hostname = "lambda"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  port = 9000
+
+[[services]]
+  name = "decoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "decoder"
+
+[[services]]
+  auth = "admin"
+  name = "gcs"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/gcs@v4_backend_rework"
+    plugin = "gcs"
+    [services.plugin.args]
+      dump_dir = "gcs_frames"
+      http_addr = ":8002"
+      mapbox = "pk.eyJ1IjoibWloaXJiYWxhIiwiYSI6ImNtZnB4c29yajBtNGcybXEyOW45dmYyY24ifQ.hjJrPxoZ4Qoi6rqBIYkXVQ"
+
+[[services]]
+  name = "detection"
+  type = "engine"
+  [services.plugin]
+    environment = "cuda126"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection@v4_backend_rework"
+    plugin = "detection"
+    [services.plugin.args]
+      model = "dog_extended_2x.pth"
+      only_classes = []
+      rfdetr_labels = ["N/A", "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "N/A", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "N/A", "backpack", "umbrella", "N/A", "N/A", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "N/A", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant", "bed", "N/A", "dining table", "N/A", "N/A", "toilet", "N/A", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "N/A", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush", "robotic dog"]
+
+[[services]]
+  name = "detection_log"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+    plugin = "detection-log"
+    [services.plugin.args]
+      detector = "detection"
+      refresh = true
+
+[simulator]
+  package = "https://github.com/cmusatyalab/steeleagle_plugins//simulator@v4_backend_rework"
+

@@ -1,0 +1,13 @@
+# lambda2 (orchestrator): receives the frames
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "lambda2"
+
+[[services]]
+name = "jpeg_decoder"
+type = "engine"
+[services.plugin]
+plugin = "jpeg_decoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"

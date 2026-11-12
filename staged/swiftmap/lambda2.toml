@@ -1,0 +1,14 @@
+# lambda2: the swiftmap engine, which sends drift's keyframes to the SwiftMap
+# server running here (its defaults: localhost:43322)
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "lambda2"
+
+[[services]]
+name = "swiftmap"
+type = "engine"
+[services.plugin]
+plugin = "swiftmap"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"

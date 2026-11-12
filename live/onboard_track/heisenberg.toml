@@ -1,0 +1,41 @@
+[daemon]
+  cert = ""
+  hostname = "heisenberg"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  orchestrator = "lambda:9000"
+  port = 9000
+
+[[services]]
+  name = "steppeeagle"
+  type = "vehicle"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/parrot_anafi@v4_backend_rework"
+    plugin = "anafi4k"
+    [services.plugin.args]
+      decoder = "qtic2vdec"
+
+[[services]]
+  name = "detection_qnn"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+    plugin = "detection-qnn"
+    [services.plugin.args]
+      backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
+      confidence = 0.5
+      labels = "dog_extended.txt"
+      model = "libdog_extended_s640_v26_dogcalib_quant.so"
+      nms_score_threshold = 0.5
+
+[[services]]
+  name = "detection_log"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+    plugin = "detection-log"
+    [services.plugin.args]
+      detector = "detection-qnn"
+      refresh = true

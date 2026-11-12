@@ -1,0 +1,111 @@
+# YOLO early discard (detection-qnn, person) on fermi, frames sent to lambda2 as JPEG.
+# Each video is two experiments: <video>_full sends whole frames under normal/limited
+# (flow_full.toml), and <video>_crop sends only the highest-confidence person crop under
+# degraded/intermittent (flow_crop.toml). fermi_<experiment>.toml replays that
+# experiment's video. detection-log's frames are the results.
+
+[[experiments]]
+name = "parkinglot_full"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "parkinglot.mp4"
+no_upload = true
+flow = "flow_full.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[[experiments]]
+name = "parkinglot_crop"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "parkinglot.mp4"
+no_upload = true
+flow = "flow_crop.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[[experiments]]
+name = "street_full"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "street.mp4"
+no_upload = true
+flow = "flow_full.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[[experiments]]
+name = "street_crop"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "street.mp4"
+no_upload = true
+flow = "flow_crop.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[[experiments]]
+name = "traintrack_full"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "traintrack.mp4"
+no_upload = true
+flow = "flow_full.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[[experiments]]
+name = "traintrack_crop"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "traintrack.mp4"
+no_upload = true
+flow = "flow_crop.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+[daemons]
+[daemons.lambda2]
+orchestrator = true
+prefix = ""
+[daemons.fermi] # the name fermi's daemon registers with
+prefix = "root@fermi:"
+
+[results] # moved off the hosts after each trial
+detection_log = "fermi/root/.local/share/steeleagle/files/*.detection_log/"

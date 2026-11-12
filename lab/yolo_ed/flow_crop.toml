@@ -1,0 +1,50 @@
+# rgb -> yolo (early discard) -> detection_log
+#                             -> reduce (detection-crop: best person) -> jpeg_encoder ==network==> jpeg_decoder (lambda2)
+
+[[producers]]
+name = "rgb"
+
+[[engines]]
+name = "yolo"
+location = "local"
+
+[[engines]]
+name = "detection_log"
+location = "local"
+
+[[engines]]
+name = "reduce"
+location = "local"
+
+[[engines]]
+name = "jpeg_encoder"
+location = "local"
+
+[[engines]]
+name = "jpeg_decoder"
+location = "remote"
+
+[[edges]]
+from = "rgb"
+to = "yolo"
+timeout = "2s"
+
+[[edges]]
+from = "yolo"
+to = "detection_log"
+timeout = "2s"
+
+[[edges]]
+from = "yolo"
+to = "reduce"
+timeout = "2s"
+
+[[edges]]
+from = "reduce"
+to = "jpeg_encoder"
+timeout = "2s"
+
+[[edges]]
+from = "jpeg_encoder"
+to = "jpeg_decoder"
+timeout = "5s"

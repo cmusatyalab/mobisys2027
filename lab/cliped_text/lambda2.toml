@@ -1,0 +1,23 @@
+# lambda2: VLM verifier (Ollama, qwen2.5vl:3b) with the text prompt "person"
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "lambda2"
+
+[[services]]
+name = "webp_decoder"
+type = "engine"
+[services.plugin]
+plugin = "webp_decoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+
+[[services]]
+name = "verifier"
+type = "engine"
+[services.plugin]
+plugin = "verifier"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+[services.plugin.args]
+prompt = "person"
+log_tiles = true

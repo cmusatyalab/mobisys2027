@@ -1,0 +1,48 @@
+# fermi: CLIP edge filter with the text prompt "person"
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "fermi"
+orchestrator = "lambda2:9000"
+
+# Replays traintrack.mp4 (already in fermi's files directory) once, from SetDataflow on
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+[services.plugin.args]
+video = "traintrack.mp4"
+no_loop = true
+
+# cliped's tiling is tuned for 720p
+[[services]]
+name = "rescale"
+type = "engine"
+[services.plugin]
+plugin = "rescale"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/rescale@v4_backend_rework"
+[services.plugin.args]
+resolution = "720p"
+
+# resend_after_ms is above the 5s edge timeout plus the VLM's time per tile
+[[services]]
+name = "cliped"
+type = "engine"
+[services.plugin]
+plugin = "cliped"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+[services.plugin.args]
+prompt = "person"
+verifier = "verifier"
+log_tiles = true
+resend_after_ms = 15000
+
+[[services]]
+name = "webp_encoder"
+type = "engine"
+[services.plugin]
+plugin = "webp_encoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"

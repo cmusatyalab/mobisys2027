@@ -1,0 +1,67 @@
+# cliped (text prompt "person") on fermi -> WebP -> VLM verifier on lambda2, log_tiles on both.
+# malicious cuts the link while the person is visible in each video (failpoints:
+# TP frames of steeleagle_plugins/engines/cliped/tools/labels at 30 fps, padded 1 s each side).
+
+[[experiments]]
+name = "parkinglot"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "parkinglot.mp4"
+no_upload = true
+flow = "flow.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent", "malicious"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+failpoints = [[48.6, 16.8]] # used only by the malicious profile
+
+[[experiments]]
+name = "street"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "street.mp4"
+no_upload = true
+flow = "flow.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent", "malicious"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+failpoints = [[39.1, 12.6], [68.9, 12.8]] # used only by the malicious profile
+
+[[experiments]]
+name = "traintrack"
+vehicle = "drone"
+[experiments.video]
+# Already in fermi's files directory, so not pushed; the copy here gives its length
+video = "traintrack.mp4"
+no_upload = true
+flow = "flow.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent", "malicious"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+failpoints = [[21.2, 8.4], [61.1, 21.4]] # used only by the malicious profile
+
+# Each experiment's fermi config is fermi_<experiment>.toml, whose driver replays
+# that experiment's video; lambda2.toml is shared by all of them.
+[daemons]
+[daemons.lambda2]
+orchestrator = true
+prefix = ""
+[daemons.fermi] # the name fermi's daemon registers with
+prefix = "root@fermi:"
+
+[results] # moved off the hosts after each trial
+cliped = "fermi/root/.local/share/steeleagle/files/*.cliped/"
+verifier = "lambda2/root/.local/share/steeleagle/files/*.verifier/"

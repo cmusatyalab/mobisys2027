@@ -1,0 +1,43 @@
+[daemon]
+  cert = ""
+  hostname = "heisenberg"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  orchestrator = "lambda:9000"
+  port = 9000
+
+[[services]]
+  name = "encoder"
+  type = "engine"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "encoder"
+    [services.plugin.args]
+      convert_threads = 4
+      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=426,height=240"
+      decoder_name = "decoder"
+      encoder = "qtic2venc control-rate=disable b-frames=0 idr-interval=30"
+      fps = 15
+      keyframe_timeout = 0
+
+[[services]]
+  name = "steppeeagle"
+  type = "vehicle"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/parrot_anafi@v4_backend_rework"
+    plugin = "anafi4k"
+    [services.plugin.args]
+      decoder = "qtic2vdec"
+
+[[services]]
+  name = "detection_log"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+    plugin = "detection-log"
+    [services.plugin.args]
+      detector = "detection-qnn"
+      refresh = true
