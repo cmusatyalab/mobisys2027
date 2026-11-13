@@ -3,6 +3,8 @@
     experiment <dir>              run every experiment in dir
     experiment <dir> -e <name>    run only that experiment (repeatable)
     experiment <dir> -l           list the experiments in dir
+    experiment <dir> -p <profile> run only that netsim profile (repeatable)
+    experiment <dir> --overwrite  replace an earlier run's results in place
     experiment -r <dir_of_dirs>   run every experiment directory inside
 
 An experiment directory holds an experiment.toml (see example/) and every file
@@ -1266,6 +1268,39 @@ def source_files(exp: Experiment, src: str) -> tuple[DaemonCfg, list[str]]:
     return d, sorted(p for p in r.stdout.decode().split("\0") if p)
 
 
+def clear_results(exp: Experiment) -> None:
+    """Deletes what each result source holds on its host before a trial, so
+    files left there by an earlier run (or one that died before collecting
+    them) aren't collected with the trial's. A directory the source names or
+    matches is emptied, not removed; a file is removed."""
+    for key, src in exp.results.items():
+        host, _, rest = src.partition("/")
+        d = exp.daemons[host]
+        path = "/" + rest
+        if path.rstrip("/") in ("", "/"):
+            raise RuntimeError(f"results.{key} = {src!r}: refusing to clear the root directory")
+        log(f"clearing {key} at {src}")
+        if d.prefix:
+            expand = path if glob.has_magic(path) else shlex.quote(path)
+            script = (
+                f'for f in {expand}; do if [ -d "$f" ]; then find "$f" -mindepth 1 -delete; '
+                f'elif [ -e "$f" ] || [ -L "$f" ]; then rm -f -- "$f"; fi; done'
+            )
+            r = subprocess.run(ssh(d.ssh_host, script), capture_output=True)
+            if r.returncode:
+                log(f"warning: clearing {key} on {d.key} exited {r.returncode}: {r.stderr.decode().strip()}")
+            continue
+        for p in glob.glob(path) if glob.has_magic(path) else [path]:
+            if os.path.isdir(p) and not os.path.islink(p):
+                for entry in os.scandir(p):
+                    if entry.is_dir(follow_symlinks=False):
+                        shutil.rmtree(entry.path)
+                    else:
+                        os.remove(entry.path)
+            elif os.path.lexists(p):
+                os.remove(p)
+
+
 def deferred_files(exp: Experiment) -> dict[str, set[str]]:
     """The files each defer_pull catalog names now, before a trial, so that only
     the ones the trial adds are renamed after it."""
@@ -1767,10 +1802,17 @@ def qualify_flow(client: Daemon, flow_bytes: bytes, vehicle: str) -> bytes:
     return flow_toml(flow)
 
 
-def new_run_dir(exp: Experiment, profile: str) -> Path:
+def new_run_dir(exp: Experiment, profile: str, overwrite: bool = False) -> Path:
+    """An empty run directory for profile. If an earlier run's results are
+    there, they are deleted with overwrite; otherwise the new directory gets a
+    timestamp, so nothing is overwritten."""
     run_dir = exp.dir / "runs" / exp.name / profile
     if run_dir.exists():
-        run_dir = run_dir.with_name(f"{profile}-{datetime.now():%Y%m%d-%H%M%S}")
+        if overwrite:
+            log(f"--overwrite: deleting the earlier results in {run_dir}")
+            shutil.rmtree(run_dir)
+        else:
+            run_dir = run_dir.with_name(f"{profile}-{datetime.now():%Y%m%d-%H%M%S}")
     run_dir.mkdir(parents=True)
     return run_dir
 
@@ -1989,7 +2031,7 @@ def run_trial(
         cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
 
 
-def run_experiment(client: Daemon, exp: Experiment) -> None:
+def run_experiment(client: Daemon, exp: Experiment, overwrite: bool = False) -> None:
     phase = exp.phase
     log(
         f"### experiment {exp.name} ({exp.dir}): {describe(phase)}"
@@ -2000,7 +2042,7 @@ def run_experiment(client: Daemon, exp: Experiment) -> None:
     if phase.duration_from_video:
         log(f"video {phase.video.name} is {phase.duration:g}s long; each trial runs that long")
     for profile in exp.profiles:
-        run_dir = new_run_dir(exp, profile)
+        run_dir = new_run_dir(exp, profile, overwrite)
         for trial in range(1, exp.trials + 1):
             # Each trial starts from freshly restarted daemons, so no state
             # (like a running flow) carries over from the previous one.
@@ -2012,6 +2054,7 @@ def run_experiment(client: Daemon, exp: Experiment) -> None:
                 # Taken before the daemons restart, since an engine may
                 # write its files as soon as it starts
                 deferred_before = deferred_files(exp)
+                clear_results(exp)
                 configure_daemons(client, exp, profile)
                 time.sleep(2)  # let the orchestrator go down before polling it
                 vehicle = client.wait_ready(exp.vehicle, exp.remotes)
@@ -2053,6 +2096,28 @@ def list_experiments(exp_dir: Path, names: list[str] | None = None) -> None:
         print("  " + "  ".join(c.ljust(w) for c, w in zip(r, widths)).rstrip())
 
 
+def select_profiles(exps: list[Experiment], picked: list[str]) -> list[Experiment]:
+    """Narrows each experiment to the picked profiles it lists, keeping its
+    own order (and the configs it resolved over all of its profiles). An
+    experiment that lists none of them is skipped."""
+    unknown = [p for p in picked if p not in NETSIM_PROFILES]
+    if unknown:
+        raise SystemExit(
+            f"unknown netsim profile {', '.join(unknown)}; the profiles are {', '.join(NETSIM_PROFILES)}"
+        )
+    unused = [p for p in picked if not any(p in e.profiles for e in exps)]
+    if unused:
+        raise SystemExit(f"no selected experiment runs profile {', '.join(unused)}")
+    kept = []
+    for e in exps:
+        e.profiles = [p for p in e.profiles if p in picked]
+        if e.profiles:
+            kept.append(e)
+        else:
+            log(f"skipping experiment {e.name} ({e.dir}): it runs none of profiles {', '.join(picked)}")
+    return kept
+
+
 def main():
     ap = argparse.ArgumentParser(description="Run SteelEagle experiments.")
     ap.add_argument("path", type=Path, help="experiment directory (or, with -r, a directory of them)")
@@ -2064,6 +2129,16 @@ def main():
     ap.add_argument(
         "-l", "--list", action="store_true",
         help="list the experiments in path's experiment.toml (with -r, in each directory) and exit",
+    )
+    ap.add_argument(
+        "-p", "--profile", action="append", dest="profiles", metavar="PROFILE",
+        help="run only this netsim profile, in each experiment that lists it "
+        "(repeat, or separate with commas, for several)",
+    )
+    ap.add_argument(
+        "--overwrite", action="store_true",
+        help="delete an earlier run's results for a profile and write in its place, "
+        "instead of saving to a timestamped folder beside it",
     )
     ap.add_argument(
         "--update-packages", action="store_true",
@@ -2096,6 +2171,9 @@ def main():
         exps = [e for d in exp_dirs for e in load_experiments(d, args.experiments)]
     except ValueError as e:
         raise SystemExit(f"invalid experiment: {e}")
+    if args.profiles:
+        picked = [p.strip() for arg in args.profiles for p in arg.split(",") if p.strip()]
+        exps = select_profiles(exps, list(dict.fromkeys(picked)))
 
     # Ask for the sudo password now rather than in the middle of a run
     if os.geteuid() != 0 and any(
@@ -2127,7 +2205,7 @@ def main():
         if e.dir not in pushed:
             push_uploads(client, e)
             pushed.add(e.dir)
-        run_experiment(client, e)
+        run_experiment(client, e, args.overwrite)
     log(f"done: {len(exps)} experiment(s)")
 
 

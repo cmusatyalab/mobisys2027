@@ -48,6 +48,23 @@ path/to/my_experiment:
   survey         mission  survey.zip                       drone    all               3
 ```
 
+### Picking profiles
+
+By default each experiment runs every netsim profile its `[experiments.netsim]`
+lists. `-p` runs only the named profile, and can be repeated or given a
+comma-separated list (`-p none,ambient`); the profiles
+still run in the order the experiment lists them:
+
+```bash
+uv run experiment path/to/my_experiment -p normal -p malicious
+```
+
+`-p` works with `-e` and `-r`. An experiment that lists none of the picked
+profiles is skipped; a profile that no selected experiment lists is an error.
+Each profile's daemon configs are picked as though all of the experiment's
+profiles ran (see below), so a config carried over from an earlier profile is
+still used when that profile is left out.
+
 ### Running a batch of experiment directories
 
 `-r` runs every experiment in every subdirectory that contains an
@@ -70,6 +87,8 @@ through.
 | `-r, --recursive` | Run every experiment directory inside `path`                                |
 | `-e, --experiment NAME` | Run only the experiment named `NAME` (repeat for several). Not with `-r` |
 | `-l, --list`      | List the experiments in `path` (with `-r`, in each directory) and exit      |
+| `-p, --profile PROFILE` | Run only the netsim profile `PROFILE` (repeat, or separate with commas, for several) |
+| `--overwrite`     | Delete an earlier run's results for a profile and write in its place (see [Output](#output)) |
 | `--update-packages` | Reinstall every package the daemons' configs use, once per daemon per run, to get a branch's latest code (see below) |
 | `--socket PATH`   | eagled's control socket (default: `$XDG_RUNTIME_DIR/steeleagle/eagled.sock`) |
 
@@ -463,6 +482,11 @@ A directory's contents are collected into `result/<name>/` (or
 leaves the emptied source directories in place. A source that matches nothing
 gives a warning, not an error.
 
+Before each trial (before the daemons restart), every `[results]` source is
+cleared on its host: the directories it names or matches are emptied and the
+files are deleted, so leftovers from an earlier run aren't collected with the
+trial's. Catalogs are not touched.
+
 A catalog can instead be left on its host, to be transferred later, with
 `defer_pull`:
 
@@ -545,7 +569,8 @@ can also be restored by running the runner again.
 Each profile's trials go to `runs/<experiment>/<profile>/` in the experiment
 directory. If that folder already exists (from an earlier run), a timestamp is
 added (`runs/onboard_track/normal-20261110-031500/`), so nothing is
-overwritten.
+overwritten. With `--overwrite`, the earlier folder is deleted instead and the
+new results go in its place; only the profiles that run are touched.
 
 ```
 runs/onboard_track/normal/
