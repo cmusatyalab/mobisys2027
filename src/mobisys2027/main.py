@@ -5,6 +5,8 @@
     experiment <dir> -l           list the experiments in dir
     experiment <dir> -p <profile> run only that netsim profile (repeatable)
     experiment <dir> --overwrite  replace an earlier run's results in place
+    experiment <dir> -t <n>       run only trial n of each profile, as a new trial
+                                  (with --overwrite, replacing trial_<n>)
     experiment -r <dir_of_dirs>   run every experiment directory inside
 
 An experiment directory holds an experiment.toml (see example/) and every file
@@ -1817,6 +1819,53 @@ def new_run_dir(exp: Experiment, profile: str, overwrite: bool = False) -> Path:
     return run_dir
 
 
+def trial_numbers(run_dir: Path) -> list[int]:
+    """The numbers of the trial_<n> directories in run_dir."""
+    if not run_dir.is_dir():
+        return []
+    return sorted(
+        int(m.group(1)) for p in run_dir.iterdir() if p.is_dir() and (m := re.fullmatch(r"trial_(\d+)", p.name))
+    )
+
+
+def drop_trial_rows(run_dir: Path, label: str, trial: int) -> None:
+    """Removes trial's rows from the profile's stats, timeline and power CSVs."""
+    for kind in ("stats", "timeline", "power"):
+        path = run_dir / f"{kind}_{label}.csv"
+        if not path.is_file():
+            continue
+        with open(path, newline="") as f:
+            r = csv.DictReader(f)
+            columns = r.fieldnames or []
+            rows = [row for row in r if row.get("trial") != str(trial)]
+        with open(path, "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=columns)
+            w.writeheader()
+            w.writerows(rows)
+
+
+def single_trial_dir(exp: Experiment, profile: str, trial: int, overwrite: bool) -> tuple[Path, int]:
+    """For -t: the profile's run directory (created if missing, never
+    timestamped) and the trial number to run. With overwrite, trial_<trial>
+    and its rows in the profile's CSVs are deleted and trial is reused;
+    otherwise trial is used if it is free, or else the next number after the
+    highest trial there, so nothing is overwritten."""
+    run_dir = exp.dir / "runs" / exp.name / profile
+    run_dir.mkdir(parents=True, exist_ok=True)
+    trial_dir = run_dir / f"trial_{trial}"
+    if overwrite:
+        if trial_dir.exists():
+            log(f"--overwrite: deleting the earlier trial {trial_dir}")
+            shutil.rmtree(trial_dir)
+        drop_trial_rows(run_dir, f"{profile}_{exp.name}", trial)
+        return run_dir, trial
+    if trial_dir.exists():
+        new = max(trial_numbers(run_dir)) + 1
+        log(f"{trial_dir} exists; saving this trial as trial_{new} instead")
+        return run_dir, new
+    return run_dir, trial
+
+
 def cleanup(
     exp: Experiment, run_dir: Path, trial_dir: Path, netsim: Netsim, power: PowerMonitor, label: str,
     profile: str, trial: int, wall_sec: float, deferred_before: dict[str, set[str]], started: bool = True,
@@ -2031,19 +2080,28 @@ def run_trial(
         cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
 
 
-def run_experiment(client: Daemon, exp: Experiment, overwrite: bool = False) -> None:
+def run_experiment(
+    client: Daemon, exp: Experiment, overwrite: bool = False, only_trial: int | None = None,
+) -> None:
+    """Runs every trial of each profile, or, with only_trial, that one trial
+    (see single_trial_dir)."""
     phase = exp.phase
     log(
         f"### experiment {exp.name} ({exp.dir}): {describe(phase)}"
         + (" (not uploaded)" if phase.no_upload else "")
         + f", profiles {', '.join(exp.profiles)}, "
-        + f"{exp.trials} trial(s) each"
+        + (f"trial {only_trial} only" if only_trial else f"{exp.trials} trial(s) each")
     )
     if phase.duration_from_video:
         log(f"video {phase.video.name} is {phase.duration:g}s long; each trial runs that long")
     for profile in exp.profiles:
-        run_dir = new_run_dir(exp, profile, overwrite)
-        for trial in range(1, exp.trials + 1):
+        if only_trial:
+            run_dir, trial = single_trial_dir(exp, profile, only_trial, overwrite)
+            trials = [trial]
+        else:
+            run_dir = new_run_dir(exp, profile, overwrite)
+            trials = range(1, exp.trials + 1)
+        for trial in trials:
             # Each trial starts from freshly restarted daemons, so no state
             # (like a running flow) carries over from the previous one.
             # The uploads were pushed once, before the directory's first
@@ -2141,6 +2199,11 @@ def main():
         "instead of saving to a timestamped folder beside it",
     )
     ap.add_argument(
+        "-t", "--trial", type=int, metavar="N",
+        help="run only trial N of each profile, into its existing results folder: with --overwrite, "
+        "trial_N is replaced; otherwise it is added as trial_N, or, if that exists, as the next free trial",
+    )
+    ap.add_argument(
         "--update-packages", action="store_true",
         help="reinstall every package the daemons' configs use, once per daemon per run, "
         "to get a branch's latest code (missing packages are always installed)",
@@ -2149,6 +2212,8 @@ def main():
     args = ap.parse_args()
     global UPDATE_PACKAGES
     UPDATE_PACKAGES = args.update_packages
+    if args.trial is not None and args.trial < 1:
+        ap.error("-t takes a trial number >= 1")
     if args.recursive and args.experiments:
         ap.error("-e picks experiments in one directory's experiment.toml; it can't be used with -r")
 
@@ -2205,7 +2270,7 @@ def main():
         if e.dir not in pushed:
             push_uploads(client, e)
             pushed.add(e.dir)
-        run_experiment(client, e, args.overwrite)
+        run_experiment(client, e, args.overwrite, args.trial)
     log(f"done: {len(exps)} experiment(s)")
 
 

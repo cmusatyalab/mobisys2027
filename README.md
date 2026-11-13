@@ -89,6 +89,7 @@ through.
 | `-l, --list`      | List the experiments in `path` (with `-r`, in each directory) and exit      |
 | `-p, --profile PROFILE` | Run only the netsim profile `PROFILE` (repeat, or separate with commas, for several) |
 | `--overwrite`     | Delete an earlier run's results for a profile and write in its place (see [Output](#output)) |
+| `-t, --trial N`   | Run only trial `N` of each profile, into its existing results folder (see [Output](#output)) |
 | `--update-packages` | Reinstall every package the daemons' configs use, once per daemon per run, to get a branch's latest code (see below) |
 | `--socket PATH`   | eagled's control socket (default: `$XDG_RUNTIME_DIR/steeleagle/eagled.sock`) |
 
@@ -571,6 +572,17 @@ directory. If that folder already exists (from an earlier run), a timestamp is
 added (`runs/onboard_track/normal-20261110-031500/`), so nothing is
 overwritten. With `--overwrite`, the earlier folder is deleted instead and the
 new results go in its place; only the profiles that run are touched.
+
+`-t N` runs a single trial per profile and adds it to the existing
+`runs/<experiment>/<profile>/` folder (created if missing; never timestamped).
+If `trial_N` is free it is used; if it exists, the trial is saved as the next
+number after the highest trial there. With `--overwrite`, `trial_N` and its
+rows in the profile's stats, timeline and power CSVs are deleted and replaced
+by the new trial; the other trials are left alone:
+
+```bash
+uv run experiment path/to/my_experiment -p normal -t 2 --overwrite
+```
 
 ```
 runs/onboard_track/normal/
