@@ -16,6 +16,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone
 [services.plugin.args]
 video = "mill_19_front.mp4"
 no_loop = true
+telemetry = true
 
 [[services]]
 name = "jpeg_encoder"
