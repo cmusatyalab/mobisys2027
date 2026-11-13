@@ -26,7 +26,8 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
      (not for none or ambient, which run unattenuated), along with the power
      script (power/tachyon_power.py) on every remote daemon's host, over ssh,
   4. waits for the duration (for a video, the video's length unless a
-     duration is set), or for ENTER when the duration is 0,
+     duration is set), or for ENTER when the duration is 0, and then for the
+     grace period, if one is set, with everything still running,
   5. stops the power script, the mission (Hold, then StopMission) and netsim, and
   6. collects the trial into <dir>/runs/<experiment>/<profile>/:
         trial_<n>/result/<key>/              result files, moved off their hosts
@@ -38,6 +39,11 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
         stats_<profile>_<experiment>.csv     totals, bandwidth and power statistics, a row per trial
         timeline_<profile>_<experiment>.csv  every trial's timeline, with a trial column
         power_<profile>_<experiment>.csv     every trial's power timelines, with trial and daemon columns
+
+An experiment's hooks ([experiments.hooks]) are commands run in the
+experiment directory during each trial: start once the mission or flow has
+started (step 3), grace when the grace period starts (step 4), and end once the
+trial has been stopped and collected (step 6), however it ended.
 
 Once an experiment's last trial is collected, each directory a result names (or
 its glob matches) is removed from its host (rm -rf), along with anything left in it.
@@ -107,6 +113,10 @@ NETSIM_PROFILES = [
     "normal", "limited", "degraded", "intermittent", "denied", "malicious", "outage", "delay",
     NONE, AMBIENT,
 ]
+# Points of each trial a hook ([experiments.hooks]) can run at: when the
+# mission or flow starts, when its grace period starts, and once the trial is
+# stopped and collected
+HOOKS = ("start", "grace", "end")
 IPERF_PORT = 5201
 IPERF_DURATION = 30.0
 ROUTE_HEADER = "x-route-key"
@@ -235,6 +245,9 @@ class Phase:
     # be on its daemons (a video's comes from its upload's no_upload)
     no_upload: bool = False
     duration_from_video: bool = False
+    # seconds to keep running after the duration (or ENTER), before the trial
+    # is stopped, e.g. for reintegration or reachback to finish transmitting
+    grace: float = 0.0
 
 
 @dataclass
@@ -288,6 +301,9 @@ class Experiment:
     # row of its timeline
     power: bool = True
     power_interval: float = POWER_INTERVAL
+    # Shell commands (argv lists) run in the experiment directory at points of
+    # each trial: "start", "grace" and "end" (see HOOKS)
+    hooks: dict[str, list[str]] = field(default_factory=dict)
 
     @property
     def orchestrator(self) -> DaemonCfg:
@@ -518,6 +534,12 @@ def parse_experiment(
             raise ValueError(f"{where}: {kind}.duration must be a number >= 0, not {d!r}")
         return float(d)
 
+    def grace(kind: str, sect: dict) -> float:
+        g = sect.get("grace", 0)
+        if not isinstance(g, (int, float)) or isinstance(g, bool) or g < 0:
+            raise ValueError(f"{where}: {kind}.grace must be a number >= 0, not {g!r}")
+        return float(g)
+
     def file_name(key: str, value) -> str:
         if not isinstance(value, str) or not value or "/" in value:
             raise ValueError(f"{where}: {key} must be a file name, not {value!r}")
@@ -535,6 +557,7 @@ def parse_experiment(
         phases.append(Phase(
             "mission", mission, flag(sect, "mission.auto"),
             duration("mission", sect) or 0.0, no_upload=no_upload,
+            grace=grace("mission", sect),
         ))
     sect = exp.get("video", {})
     if sect.get("video") or sect.get("flow"):
@@ -576,6 +599,7 @@ def parse_experiment(
         phases.append(Phase(
             "video", exp_file("video.flow", sect["flow"]), flag(sect, "video.auto"), d,
             video=video, no_upload=no_upload, duration_from_video=from_video,
+            grace=grace("video", sect),
         ))
     if len(phases) != 1:
         raise ValueError(f"{where}: set exactly one of mission (file) or video (video and flow)")
@@ -621,11 +645,30 @@ def parse_experiment(
     if not isinstance(power_interval, (int, float)) or isinstance(power_interval, bool) or power_interval < 0.1:
         raise ValueError(f"{where}: power.interval must be a number >= 0.1, not {power_interval!r}")
 
+    hk = exp.get("hooks", {})
+    if not isinstance(hk, dict):
+        raise ValueError(f"{where}: hooks must be a table, [experiments.hooks]")
+    unknown = set(hk) - set(HOOKS)
+    if unknown:
+        raise ValueError(
+            f"{where}: hooks has unknown keys {', '.join(sorted(unknown))}; "
+            f"it takes {', '.join(HOOKS)}"
+        )
+    hooks = {}
+    for key, cmd in hk.items():
+        if not isinstance(cmd, list) or not all(isinstance(a, str) for a in cmd):
+            raise ValueError(
+                f"{where}: hooks.{key} must be a command as a list of strings, "
+                f'e.g. ["sh", "-c", "echo hi"], not {cmd!r}'
+            )
+        if cmd:
+            hooks[key] = cmd
+
     return Experiment(
         exp_dir, name, vehicle, phase, list(profiles), ns["interface"], int(ns["port"]),
         netsim_args, failpoints, trials, iperf_port, float(iperf_duration),
         daemons, configs, uploads, results, catalogs, defer_pull,
-        power, float(power_interval),
+        power, float(power_interval), hooks,
     )
 
 
@@ -1767,6 +1810,47 @@ def wait_for(duration: float, what: str) -> float:
     return time.monotonic() - t0
 
 
+def wait_grace(grace: float) -> float:
+    """Waits out the grace period. Returns seconds waited."""
+    if grace <= 0:
+        return 0.0
+    t0 = time.monotonic()
+    log(f"grace period: waiting {grace:g}s more before stopping")
+    time.sleep(grace)
+    return time.monotonic() - t0
+
+
+def run_hook(
+    exp: Experiment, hook: str, profile: str, trial: int, trial_dir: Path, vehicle: str,
+) -> None:
+    """Runs the experiment's hook (start, grace or end), if it has one, in
+    the experiment directory, and waits for it. Its output goes to the
+    terminal. It is told about the trial through the environment
+    (EXPERIMENT_NAME, EXPERIMENT_PROFILE, EXPERIMENT_TRIAL,
+    EXPERIMENT_TRIAL_DIR, EXPERIMENT_VEHICLE, EXPERIMENT_HOOK). A hook that
+    fails is only warned about, so the trial still stops and is collected."""
+    cmd = exp.hooks.get(hook)
+    if not cmd:
+        return
+    env = {
+        **os.environ,
+        "EXPERIMENT_NAME": exp.name,
+        "EXPERIMENT_PROFILE": profile,
+        "EXPERIMENT_TRIAL": str(trial),
+        "EXPERIMENT_TRIAL_DIR": str(trial_dir.resolve()),
+        "EXPERIMENT_VEHICLE": vehicle,
+        "EXPERIMENT_HOOK": hook,
+    }
+    log(f"running {hook} hook: {shlex.join(cmd)}")
+    try:
+        r = subprocess.run(cmd, cwd=exp.dir, env=env, stdin=subprocess.DEVNULL)
+    except OSError as e:
+        log(f"warning: {hook} hook couldn't run: {e}")
+        return
+    if r.returncode:
+        log(f"warning: {hook} hook exited {r.returncode}")
+
+
 def toml_value(v) -> str:
     if isinstance(v, bool):
         return "true" if v else "false"
@@ -2091,7 +2175,12 @@ def run_trial(
         netsim.start()
         power.start()
         log(f"{phase.kind} started")
+        run_hook(exp, "start", profile, trial, trial_dir, vehicle)
         wall = wait_for(phase.duration, f"{phase.kind} under {what}")
+        # Everything keeps running through the grace period: the mission or
+        # flow, netsim and the power measurement
+        run_hook(exp, "grace", profile, trial, trial_dir, vehicle)
+        wall += wait_grace(phase.grace)
     finally:
         # Before the mission and services stop, so the power timeline covers
         # the trial's run only, as the bandwidth timeline does
@@ -2108,7 +2197,11 @@ def run_trial(
             stop_services(client, exp)
         except grpc.RpcError as e:
             log(f"warning: couldn't stop the services: {e.code().name} {e.details()}")
-        cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
+        try:
+            cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
+        finally:
+            # However the trial ended, once it has been stopped and collected
+            run_hook(exp, "end", profile, trial, trial_dir, vehicle)
 
 
 def run_experiment(
@@ -2125,6 +2218,8 @@ def run_experiment(
     )
     if phase.duration_from_video:
         log(f"video {phase.video.name} is {phase.duration:g}s long; each trial runs that long")
+    if phase.grace:
+        log(f"each trial keeps running for a {phase.grace:g}s grace period after that")
     for profile in exp.profiles:
         if only_trial:
             run_dir, trial = single_trial_dir(exp, profile, only_trial, overwrite)

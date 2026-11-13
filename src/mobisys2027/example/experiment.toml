@@ -17,6 +17,10 @@ auto = false
 # If duration > 0, will run the mission for the given duration (in seconds)
 # before stopping; otherwise, will prompt the user to press ENTER once done
 duration = 0
+# Seconds to keep running after the duration (or ENTER) before stopping, e.g.
+# for prioritized reintegration or reachback to finish transmitting. The
+# mission, netsim and the power measurement all keep running (default 0)
+grace = 0
 [experiments.video]
 # Video to run for this experiment: one of the [[uploads]] below, by its file
 # name or the name it is pushed as
@@ -29,6 +33,9 @@ auto = false
 # the header of an MP4/MOV file). If set, it overrides that: duration > 0 runs
 # the flow for that many seconds; 0 prompts ENTER to stop
 # duration = 60
+# Seconds to keep running after the video's length (or duration) before
+# stopping, as for a mission (default 0)
+grace = 0
 [experiments.netsim]
 # Network profiles, in order: normal, limited, degraded, intermittent, denied,
 # malicious, delay (unshaped bandwidth, 0-300 ms of variable latency), none
@@ -55,6 +62,15 @@ trials = 3 # Number of times to run each profile
 [experiments.power]
 enabled = true # Default true
 interval = 1 # Seconds per row of the power timeline, >= 0.1 (default 1)
+# Commands run during each trial, each a list of strings (argv, not passed
+# through a shell; use ["sh", "-c", "..."] for one), run in the experiment
+# directory and waited for. Each is optional. They get EXPERIMENT_NAME,
+# EXPERIMENT_PROFILE, EXPERIMENT_TRIAL, EXPERIMENT_TRIAL_DIR, EXPERIMENT_VEHICLE
+# and EXPERIMENT_HOOK in their environment. A failing hook is only warned about
+[experiments.hooks]
+# start = ["sh", "-c", "echo started >> hooks.log"] # once the mission/flow starts
+# grace = ["sh", "-c", "echo grace >> hooks.log"]   # when the grace period starts
+# end = ["sh", "-c", "echo ended >> hooks.log"]     # once the trial is stopped and collected
 
 # A second experiment: everything above can be set again for it
 # [[experiments]]

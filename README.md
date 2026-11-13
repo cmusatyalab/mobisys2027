@@ -239,6 +239,7 @@ The other may be left out, or kept with its files set to `""`.
 | `flow` (video)       | Flow file in the experiment directory, sent with `SetDataflow` to start each trial       |
 | `auto`               | `false`: press ENTER to start each trial. `true`: start right away                       |
 | `duration`           | Seconds to run each trial. `0`: run until you press ENTER. For a mission, defaults to `0`; for a video, defaults to the video's length (see below) |
+| `grace`              | (optional) Seconds to keep running after the duration (or ENTER) before the trial is stopped, e.g. for prioritized reintegration or reachback to finish transmitting. The mission or flow, netsim and the power measurement all keep running through it. Default `0` |
 
 The video is pushed (or not) as its `[[uploads]]` entry says. A driver such
 as `fake_drone` then finds it by name in `STEELEAGLE_FILES`, so set the
@@ -375,6 +376,30 @@ outages by being its own experiment.
 See the [netsim README](src/mobisys2027/netsim/README.md) for how
 bandwidth is drawn and what the other flags do.
 
+### `[experiments.hooks]`
+
+Commands run at points of each trial. Each is a list of strings, the
+command's argv: it isn't passed through a shell, so use
+`["sh", "-c", "..."]` for one. Each runs in the experiment directory, and the
+runner waits for it to finish. All are optional.
+
+| Key     | Runs                                                                         |
+|---------|------------------------------------------------------------------------------|
+| `start` | Once the mission or flow has started, along with netsim and the power measurement |
+| `grace` | When the duration is up (or ENTER is pressed), as the grace period starts (even if `grace` is `0`) |
+| `end`   | Once the trial has been stopped and collected, however it ended              |
+
+```toml
+[experiments.hooks]
+start = ["sh", "-c", "echo start >> hooks.log"]
+end = ["./collect.sh", "--quiet"]
+```
+
+Each hook gets `EXPERIMENT_NAME`, `EXPERIMENT_PROFILE`, `EXPERIMENT_TRIAL`,
+`EXPERIMENT_TRIAL_DIR` (absolute), `EXPERIMENT_VEHICLE` and `EXPERIMENT_HOOK`
+in its environment. A hook that fails or exits nonzero is only warned about,
+so the trial still stops and is collected.
+
 ### `[experiments.power]`
 
 While each trial runs, the runner measures the power draw of the host of every
@@ -395,8 +420,8 @@ The measuring script,
 [`src/mobisys2027/power/tachyon_power.py`](src/mobisys2027/power/tachyon_power.py),
 is written for the Particle Tachyon. The runner sends it over ssh with
 `python3 -c`, so nothing is installed on the host. It starts with netsim, once
-the vehicle has started the mission or flow, and stops when the duration is up
-(before `Hold` and the services stop), so the power timeline covers the same
+the vehicle has started the mission or flow, and stops when the duration and
+grace period are up (before `Hold` and the services stop), so the power timeline covers the same
 span as the bandwidth timeline. It stops when its ssh connection closes, so it
 never outlives the trial, even if the runner is killed.
 
@@ -534,8 +559,10 @@ its `trials`:
    as soon as the vehicle answers (except under `none` and `ambient`), and the
    power measurement on each remote's host (see
    [`[experiments.power]`](#experimentspower)).
+   Then the `start` hook runs (see [`[experiments.hooks]`](#experimentshooks)).
 7. **Run** for `duration` seconds (for a video with no `duration`, the video's
-   length), or until you press ENTER if it is `0`.
+   length), or until you press ENTER if it is `0`. Then the `grace` hook runs,
+   and the trial keeps running for `grace` more seconds.
 8. **Stop.** Stop the power measurement. For a mission: `Hold`, then `StopMission`. These are sent even if
    the run is interrupted. Then every service of the experiment's daemons is
    stopped (`StopService`, the vehicles first), so nothing is still writing to
@@ -543,7 +570,8 @@ its `trials`:
    its byte totals and removes its `tc` rules.
 9. **Collect** results and catalogs, and write the statistics. A
    `defer_pull` catalog is moved aside on its host instead (see
-   [`[results]` and `[catalogs]`](#results-and-catalogs)).
+   [`[results]` and `[catalogs]`](#results-and-catalogs)). Then the `end` hook
+   runs.
 10. **Restore the daemons.** The services stopped in step 8 are restarted
     first: a service stopped with `StopService` stays marked stopped across
     reconfigures, so one the daemon's own config doesn't have would otherwise
