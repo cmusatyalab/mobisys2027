@@ -1,0 +1,13 @@
+# lambda2 (orchestrator): swiftmap, writing to /home/xianglic/swiftmap/output/
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "lambda2"
+
+[[services]]
+name = "swiftmap"
+type = "engine"
+[services.plugin]
+plugin = "swiftmap"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"

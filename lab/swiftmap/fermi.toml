@@ -1,0 +1,32 @@
+# fermi: replays the video, JPEG-encodes it and sends it back with reachback
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "fermi"
+orchestrator = "lambda2:9000"
+
+# Replays mill_19_front.mp4 (pushed to fermi's files directory) once, from SetDataflow on
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+[services.plugin.args]
+video = "mill_19_front.mp4"
+no_loop = true
+
+[[services]]
+name = "jpeg_encoder"
+type = "engine"
+[services.plugin]
+plugin = "jpeg_encoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+
+[[services]]
+name = "reachback"
+type = "engine"
+[services.plugin]
+plugin = "reachback"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"

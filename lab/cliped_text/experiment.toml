@@ -6,9 +6,7 @@
 name = "parkinglot"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "parkinglot.mp4"
-no_upload = true
 flow = "flow.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -23,9 +21,7 @@ failpoints = [[48.6, 16.8]] # used only by the malicious profile
 name = "street"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "street.mp4"
-no_upload = true
 flow = "flow.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -40,9 +36,7 @@ failpoints = [[39.1, 12.6], [68.9, 12.8]] # used only by the malicious profile
 name = "traintrack"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "traintrack.mp4"
-no_upload = true
 flow = "flow.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -55,6 +49,18 @@ failpoints = [[21.2, 8.4], [61.1, 21.4]] # used only by the malicious profile
 
 # Each experiment's fermi config is fermi_<experiment>.toml, whose driver replays
 # that experiment's video; lambda2.toml is shared by all of them.
+
+# Pushed to every daemon once, before the first experiment
+[[uploads]] # already in fermi's files directory; the copy here gives its length
+file = "parkinglot.mp4"
+no_upload = true
+[[uploads]]
+file = "street.mp4"
+no_upload = true
+[[uploads]]
+file = "traintrack.mp4"
+no_upload = true
+
 [daemons]
 [daemons.lambda2]
 orchestrator = true

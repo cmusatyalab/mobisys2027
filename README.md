@@ -1,12 +1,12 @@
 # steeleagle-experiment
 
 An automatic experiment runner for SteelEagle. You give it an experiment
-directory, whose `experiment.toml` holds a list of experiments. For each
-experiment, and for each of its network profiles, it:
+directory, whose `experiment.toml` holds a list of experiments. It first
+pushes the files and videos the directory declares to the daemons, once. Then,
+for each experiment, and for each of its network profiles, it:
 
 - restarts the daemons with that profile's configs,
-- pushes any extra files the experiment needs to the daemons,
-- starts a mission, or pushes a video to the daemons and starts a dataflow, on a vehicle,
+- starts a mission, or a dataflow over a video, on a vehicle,
 - limits the network with [netsim](src/mobisys2027/netsim/README.md),
 - stops everything when the run ends,
 - measures the power draw of the remote daemons' hosts over the run,
@@ -144,7 +144,7 @@ Every file the experiment uses lives next to its `experiment.toml`:
 my_experiment/
 ├── experiment.toml
 ├── traintrack.mp4, flow.toml        # the videos (or in a videos/ folder above), flows and missions the experiments name
-├── labels.json                      # (optional) any files listed in an experiment's files
+├── labels.json                      # (optional) any other files listed in [[uploads]]
 ├── lambda2.toml                     # config for daemon "lambda2", for every experiment
 ├── fermi.toml                       # config for daemon "fermi", for every experiment
 ├── fermi_onboard_track.toml         # (optional) fermi's config for experiment onboard_track
@@ -160,7 +160,8 @@ for a commented template.
 `experiment.toml` holds a list of experiments, each an `[[experiments]]`
 table with its own `[experiments.mission]` or `[experiments.video]` and
 `[experiments.netsim]` sections. They run in the order they appear. The
-`[daemons]`, `[results]` and `[catalogs]` tables are shared by all of them.
+`[[uploads]]`, `[daemons]`, `[results]` and `[catalogs]` tables are shared by
+all of them.
 
 ```toml
 [[experiments]]
@@ -168,7 +169,6 @@ name = "traintrack"
 vehicle = "drone"
 [experiments.video]
 video = "traintrack.mp4"
-push_as = "video.mp4"
 flow = "flow.toml"
 [experiments.netsim]
 interface = "tailscale0"
@@ -180,13 +180,18 @@ name = "parking"
 vehicle = "drone"
 [experiments.video]
 video = "parking.mp4"
-push_as = "video.mp4"
 flow = "flow.toml"
 [experiments.netsim]
 profiles = ["normal", "malicious"]
 interface = "tailscale0"
 port = 9001
 failpoints = [[5, 5], [60, 20]]
+
+[[uploads]]
+file = "traintrack.mp4"
+[[uploads]]
+file = "parking.mp4"
+no_upload = true   # already on every daemon
 
 [daemons.lambda2]
 orchestrator = true
@@ -202,7 +207,6 @@ the runner rejects it.
 |-----------|-------------------------------------------------------------------------------|
 | `name`    | Unique name. Used by `-e`, in the daemon config file names, and for the `runs/` folder |
 | `vehicle` | Vehicle to target: its name (`drone`) or full name (`100.64.0.2.drone`)  |
-| `files`   | (optional) Files in the experiment directory to push to every daemon at the start of each trial (see below) |
 
 Then set **exactly one** of `[experiments.mission]` or `[experiments.video]`.
 The other may be left out, or kept with its files set to `""`.
@@ -211,27 +215,16 @@ The other may be left out, or kept with its files set to `""`.
 |----------------------|------------------------------------------------------------------------------------------|
 | `file` (mission)     | Mission file in the experiment directory                                                 |
 | `no_upload` (mission)| `true`: don't upload the mission; it's assumed to already be on the vehicle under its own name, and is just loaded |
-| `video` (video)      | A single video file, looked for first in the nearest `videos/` folder at or above the experiment directory, then in the experiment directory. For several videos, add an experiment for each |
-| `push_as` (video)    | Name the video is pushed as (optional; defaults to the video's own name)                 |
-| `no_upload` (video)  | `true`: don't push the video; it's assumed to already be on every daemon (see below)     |
+| `video` (video)      | A single video, which must be one of the [`[[uploads]]`](#uploads), by its file name or the name it is pushed as. For several videos, add an experiment for each |
 | `flow` (video)       | Flow file in the experiment directory, sent with `SetDataflow` to start each trial       |
 | `auto`               | `false`: press ENTER to start each trial. `true`: start right away                       |
 | `duration`           | Seconds to run each trial. `0`: run until you press ENTER. For a mission, defaults to `0`; for a video, defaults to the video's length (see below) |
 
-The video is pushed at the start of each trial, before the daemons restart, to
-`STEELEAGLE_FILES` (`~/.local/share/steeleagle/files`) on the orchestrator and
-every remote: through the orchestrator's `TransferFile`, or with rsync if a
-remote isn't registered. A driver such as `fake_drone` then finds it by name.
-Across several video experiments, set `push_as` (e.g. `"video.mp4"`) in each so
-every video lands under that one name, and set the driver's `video` arg to it;
-otherwise each video keeps its own name and the driver's arg must match it.
-
-With `no_upload = true`, the video is not pushed at all: it is assumed to
-already be in `STEELEAGLE_FILES` on the orchestrator and every remote, under
-its own name. The `video` name then only labels the experiment, so the file
-need not be in the experiment directory; but if it isn't, its length can't be
-found, so `duration` must be set. `push_as` can't be combined with it. The
-experiment's `files` are still pushed.
+The video is pushed (or not) as its `[[uploads]]` entry says. A driver such
+as `fake_drone` then finds it by name in `STEELEAGLE_FILES`, so set the
+driver's `video` arg to the name the video is pushed as. If its entry has
+`no_upload = true` and the file isn't here, its length can't be found, so
+`duration` must be set.
 
 If a video experiment leaves `duration` out, each trial runs for the length of
 its video. The length comes from `ffprobe` if it is installed, or else from the
@@ -252,25 +245,37 @@ A bare name with no such engine, or (remote) more than one, stops the trial
 before it starts, naming the engines it found. Names that are already
 qualified are sent as they are. The runner logs what it mapped each name to.
 
-#### `files`
+### `[[uploads]]`
 
-Any other files a trial needs (a model, a label map, a driver's input) can be
-listed in an experiment's `files`. They are pushed exactly like a video: at the start of every
-trial, before the daemons restart, to `STEELEAGLE_FILES` on the orchestrator
-and every remote. This works with both missions and videos.
+Every file and video the experiments need on the daemons (a video for a
+driver, a model, a label map) is declared once, for the whole directory, as an
+`[[uploads]]` table. Before the directory's first experiment runs, each is
+pushed **once** to `STEELEAGLE_FILES` (`~/.local/share/steeleagle/files`) on
+the orchestrator and every remote: through the orchestrator's `TransferFile`,
+or with rsync if a remote isn't registered. They stay there across the
+daemon restarts of every trial, profile and experiment in the directory.
 
 ```toml
-[[experiments]]
-name = "onboard_track"
-vehicle = "drone"
-files = [
-    "labels.json",                                     # pushed as labels.json
-    { file = "model_v2.pt", push_as = "model.pt" },    # pushed as model.pt
-]
+[[uploads]]
+file = "labels.json"          # pushed as labels.json
+[[uploads]]
+file = "model_v2.pt"
+push_as = "model.pt"          # pushed as model.pt
+[[uploads]]
+file = "parkinglot.mp4"
+no_upload = true              # already on every daemon: not pushed
 ```
 
-Each file must be in the experiment directory. Two files can't be pushed under
-the same name, nor under the name the video is pushed as.
+| Key         | Meaning                                                                                     |
+|-------------|---------------------------------------------------------------------------------------------|
+| `file`      | File name, looked for first in the nearest `videos/` folder at or above the experiment directory, then in the experiment directory |
+| `push_as`   | (optional) Name it is saved as on the daemons; defaults to its own name. Every upload is pushed at once, so two videos can't share one name; give each driver the name of its own video |
+| `no_upload` | (optional) `true`: don't push it; it's assumed to already be in every daemon's `STEELEAGLE_FILES` under its own name. The file then need not be here, and `push_as` can't be set |
+
+Two uploads can't be pushed under the same name. With `-e`, every upload is
+still pushed. Since uploads are pushed only once, a `[results]` path that would
+move one off its daemon (e.g. `fermi/root/.local/share/steeleagle/files/*`) is
+rejected; collect it under `[catalogs]` instead.
 
 ### `[experiments.netsim]`
 
@@ -482,12 +487,12 @@ removed from its host once it is pulled, so it can't be left there.
 
 ## What a run does
 
-For each experiment, in order, for each profile in its `profiles`, and for
-each of its `trials`:
+Before the first experiment of each directory, its `[[uploads]]` (except
+those with `no_upload`) are pushed to every daemon's files directory. Then, for
+each experiment, in order, for each profile in its `profiles`, and for each of
+its `trials`:
 
-1. **Restart the daemons.** The experiment's `files`, and its video if it has
-   one (unless `no_upload` is set), are first pushed to every daemon's files
-   directory. Then each remote daemon gets its config for the experiment and
+1. **Restart the daemons.** Each remote daemon gets its config for the experiment and
    profile, sent through the orchestrator once the remote has registered, and
    then the orchestrator gets its own config. Applying a config restarts the
    daemon. Before its config is replaced, each daemon's own config is saved

@@ -8,9 +8,7 @@
 name = "parkinglot_full"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "parkinglot.mp4"
-no_upload = true
 flow = "flow_full.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -24,9 +22,7 @@ trials = 3
 name = "parkinglot_crop"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "parkinglot.mp4"
-no_upload = true
 flow = "flow_crop.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -40,9 +36,7 @@ trials = 3
 name = "street_full"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "street.mp4"
-no_upload = true
 flow = "flow_full.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -56,9 +50,7 @@ trials = 3
 name = "street_crop"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "street.mp4"
-no_upload = true
 flow = "flow_crop.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -72,9 +64,7 @@ trials = 3
 name = "traintrack_full"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "traintrack.mp4"
-no_upload = true
 flow = "flow_full.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -88,9 +78,7 @@ trials = 3
 name = "traintrack_crop"
 vehicle = "drone"
 [experiments.video]
-# Already in fermi's files directory, so not pushed; the copy here gives its length
 video = "traintrack.mp4"
-no_upload = true
 flow = "flow_crop.toml"
 auto = true
 # duration unset: each trial runs for the length of the video
@@ -99,6 +87,18 @@ profiles = ["degraded", "intermittent"]
 interface = "tailscale0"
 port = 9001
 trials = 3
+
+
+# Pushed to every daemon once, before the first experiment
+[[uploads]] # already in fermi's files directory; the copy here gives its length
+file = "parkinglot.mp4"
+no_upload = true
+[[uploads]]
+file = "street.mp4"
+no_upload = true
+[[uploads]]
+file = "traintrack.mp4"
+no_upload = true
 
 [daemons]
 [daemons.lambda2]

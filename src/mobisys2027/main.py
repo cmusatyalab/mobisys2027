@@ -8,12 +8,13 @@
 An experiment directory holds an experiment.toml (see example/) and every file
 it names. The toml holds a list of experiments ([[experiments]]), each either a
 mission or a single video with its flow, run under its own netsim profiles; the
-daemons, results and catalogs are shared by all of them. For each experiment,
-for each of its netsim profiles, and for each trial, the runner:
+daemons, uploads, results and catalogs are shared by all of them. The uploads
+(files and videos) are pushed to every daemon's files directory
+(STEELEAGLE_FILES) once, before the directory's first experiment, except those
+marked no_upload, which are assumed to already be there. Then, for each
+experiment, for each of its netsim profiles, and for each trial, the runner:
 
-  1. pushes the experiment's files and its video, if any, to every daemon's
-     files directory (STEELEAGLE_FILES), and restarts the daemons with the
-     experiment's configs for the profile,
+  1. restarts the daemons with the experiment's configs for the profile,
   2. for the ambient profile only: stops the vehicle, measures the link from
      its host with iperf3 (the trial's bandwidth timeline), and restarts it,
   3. starts the mission (upload, load, start) or sets the video's flow on the
@@ -48,6 +49,7 @@ from __future__ import annotations
 import argparse
 import atexit
 import csv
+import fnmatch
 import glob
 import json
 import os
@@ -219,20 +221,21 @@ class Phase:
     # seconds to run each trial; 0 waits for ENTER. For a video with no
     # duration set, the video's own length (duration_from_video)
     duration: float
-    # the video, for "video": pushed to every daemon as push_as, if set, or
-    # under its own name
+    # the video, for "video": one of the directory's uploads, found here (if it
+    # is) for its length
     video: Path | None = None
-    push_as: str = ""
     # no_upload: the mission or video is not pushed, and is assumed to already
-    # be on every daemon under its own name
+    # be on its daemons (a video's comes from its upload's no_upload)
     no_upload: bool = False
     duration_from_video: bool = False
 
 
 @dataclass
-class PushFile:
-    path: Path  # in the experiment directory
+class Upload:
+    path: Path  # in a videos/ folder at or above the experiment directory, or in it
     name: str  # name it is saved as in each daemon's files directory
+    # not pushed: assumed to already be in every daemon's files directory as name
+    no_upload: bool = False
 
 
 @dataclass
@@ -266,8 +269,9 @@ class Experiment:
     iperf_duration: float  # ambient: seconds iperf3 measures the link for
     daemons: dict[str, DaemonCfg]
     configs: dict[str, dict[str, Path]]  # profile -> daemon key -> config file
-    # pushed to every daemon's files directory at the start of each trial
-    files: list[PushFile] = field(default_factory=list)
+    # the directory's uploads, shared by its experiments: pushed to every
+    # daemon's files directory once, before its first experiment runs
+    uploads: list[Upload] = field(default_factory=list)
     results: dict[str, str] = field(default_factory=dict)
     catalogs: dict[str, str] = field(default_factory=dict)
     # catalogs moved aside on their host after each trial, into a directory of
@@ -392,7 +396,71 @@ def load_experiments(exp_dir: Path, names: list[str] | None = None) -> list[Expe
             if host not in daemons:
                 raise ValueError(f"{exp_dir}: {key} = {src!r} names unknown daemon {host!r}")
 
-    return [parse_experiment(exp_dir, t, daemons, results, catalogs, defer_pull) for t in tables]
+    uploads = parse_uploads(exp_dir, raw.get("uploads", []))
+    check_results_spare_uploads(exp_dir, results, uploads)
+    return [
+        parse_experiment(exp_dir, t, daemons, results, catalogs, defer_pull, uploads)
+        for t in tables
+    ]
+
+
+def parse_uploads(exp_dir: Path, raw) -> list[Upload]:
+    """Parses the top-level uploads: a list of file names, each optionally a
+    table { file = "...", push_as = "...", no_upload = true }. Each file is
+    looked for in the nearest videos/ folder at or above exp_dir, then in
+    exp_dir. A no_upload file need not be here; only its name is used."""
+    if not isinstance(raw, list):
+        raise ValueError(f"{exp_dir}: uploads must be a list, or [[uploads]] tables")
+    uploads = []
+    for entry in raw:
+        if isinstance(entry, str):
+            entry = {"file": entry}
+        if not isinstance(entry, dict) or not isinstance(entry.get("file"), str) or not entry["file"]:
+            raise ValueError(
+                f"{exp_dir}: invalid uploads entry {entry!r}; want a file name or "
+                f'{{ file = "...", push_as = "...", no_upload = true }}'
+            )
+        unknown = set(entry) - {"file", "push_as", "no_upload"}
+        if unknown:
+            raise ValueError(f"{exp_dir}: uploads entry {entry!r} has unknown keys {sorted(unknown)}")
+        name = entry["file"]
+        if "/" in name:
+            raise ValueError(f"{exp_dir}: uploads file must be a file name, not {name!r}")
+        no_upload = entry.get("no_upload", False)
+        if not isinstance(no_upload, bool):
+            raise ValueError(f"{exp_dir}: uploads {name}: no_upload must be true or false")
+        push_as = entry.get("push_as", "")
+        if not isinstance(push_as, str) or "/" in push_as:
+            raise ValueError(f"{exp_dir}: uploads {name}: push_as must be a file name, not {push_as!r}")
+        if no_upload and push_as:
+            raise ValueError(f"{exp_dir}: uploads {name}: push_as does nothing with no_upload; leave it out")
+        path = find_video(exp_dir, name)
+        if not no_upload and not path.is_file():
+            raise ValueError(
+                f"{exp_dir}: uploads file {name} is in neither a {VIDEOS_DIR}/ folder nor {exp_dir}"
+            )
+        uploads.append(Upload(path, push_as or name, no_upload))
+    names = [u.name for u in uploads]
+    dups = sorted({n for n in names if names.count(n) > 1})
+    if dups:
+        raise ValueError(f"{exp_dir}: uploads has more than one file named {', '.join(dups)}")
+    return uploads
+
+
+def check_results_spare_uploads(exp_dir: Path, results: dict[str, str], uploads: list[Upload]) -> None:
+    """Rejects a result that would move an upload off its daemon: uploads are
+    pushed only once, so the next trial would run without it."""
+    for key, src in results.items():
+        path = src.split("/", 1)[1].rstrip("/") if "/" in src else ""
+        if REMOTE_FILES_DIR not in path + "/":
+            continue
+        files_dir = path[: (path + "/").index(REMOTE_FILES_DIR) + len(REMOTE_FILES_DIR)].rstrip("/")
+        for u in uploads:
+            if fnmatch.fnmatchcase(f"{files_dir}/{u.name}", path) or fnmatch.fnmatchcase(files_dir, path):
+                raise ValueError(
+                    f"{exp_dir}: results.{key} = {src!r} would move upload {u.name} off its "
+                    f"daemon, and uploads are pushed only once; collect it as a catalog instead"
+                )
 
 
 def find_video(exp_dir: Path, name: str) -> Path:
@@ -409,6 +477,7 @@ def find_video(exp_dir: Path, name: str) -> Path:
 def parse_experiment(
     exp_dir: Path, exp: dict, daemons: dict[str, DaemonCfg],
     results: dict[str, str], catalogs: dict[str, str], defer_pull: set[str],
+    uploads: list[Upload],
 ) -> Experiment:
     """Parses one [[experiments]] table."""
     name = exp["name"]
@@ -416,6 +485,11 @@ def parse_experiment(
     vehicle = exp.get("vehicle", "")
     if not vehicle:
         raise ValueError(f"{where}: vehicle is not set")
+    if "files" in exp:
+        raise ValueError(
+            f"{where}: files is no longer set per experiment; declare them once for the "
+            f"directory, at the top level, as [[uploads]] tables (pushed once, not every trial)"
+        )
 
     def exp_file(key: str, value: str) -> Path:
         path = exp_dir / value
@@ -464,22 +538,21 @@ def parse_experiment(
                 f"{where}: video.video is now a single video; for several videos, "
                 f"add an experiment for each"
             )
-        no_upload = flag(sect, "video.no_upload")
-        if no_upload:
-            # Not pushed, so it need not exist here; only its name is used
-            video = find_video(exp_dir, file_name("video.video (with no_upload)", sect["video"]))
-        else:
-            video = find_video(exp_dir, sect["video"])
-            if not video.is_file():
+        for key in ("no_upload", "push_as"):
+            if key in sect:
                 raise ValueError(
-                    f"{where}: video.video file {sect['video']} is in neither a "
-                    f"{VIDEOS_DIR}/ folder nor {exp_dir}"
+                    f"{where}: video.{key} is no longer set per experiment; set it on the "
+                    f"video's entry in the top-level [[uploads]]"
                 )
-        push_as = sect.get("push_as", "")
-        if push_as:
-            file_name("video.push_as", push_as)
-        if no_upload and push_as:
-            raise ValueError(f"{where}: video.push_as does nothing with no_upload; leave it out")
+        vname = file_name("video.video", sect["video"])
+        upload = next((u for u in uploads if vname in (u.path.name, u.name)), None)
+        if upload is None:
+            raise ValueError(
+                f"{where}: video {vname} is not in the top-level uploads; add it as "
+                f'[[uploads]] file = "{vname}" (with no_upload = true if it is already '
+                f"on the daemons)"
+            )
+        video, no_upload = upload.path, upload.no_upload
         d = duration("video", sect)
         from_video = d is None
         if from_video:
@@ -495,17 +568,11 @@ def parse_experiment(
                 raise ValueError(f"{where}: {e}; set video.duration instead") from None
         phases.append(Phase(
             "video", exp_file("video.flow", sect["flow"]), flag(sect, "video.auto"), d,
-            video=video, push_as=push_as, no_upload=no_upload, duration_from_video=from_video,
+            video=video, no_upload=no_upload, duration_from_video=from_video,
         ))
     if len(phases) != 1:
         raise ValueError(f"{where}: set exactly one of mission (file) or video (video and flow)")
     phase = phases[0]
-
-    files = parse_files(exp.get("files", []), where, exp_file)
-    if phase.video and not phase.no_upload:
-        pushed = phase.push_as or phase.video.name
-        if pushed in {f.name for f in files}:
-            raise ValueError(f"{where}: files pushes {pushed}, which the video is also pushed as")
 
     ns = exp.get("netsim", {})
     profiles = ns.get("profiles", ["*"])
@@ -550,39 +617,9 @@ def parse_experiment(
     return Experiment(
         exp_dir, name, vehicle, phase, list(profiles), ns["interface"], int(ns["port"]),
         netsim_args, failpoints, trials, iperf_port, float(iperf_duration),
-        daemons, configs, files, results, catalogs, defer_pull,
+        daemons, configs, uploads, results, catalogs, defer_pull,
         power, float(power_interval),
     )
-
-
-def parse_files(raw, where: str, exp_file) -> list[PushFile]:
-    """Parses an experiment's files: a list of file names in the experiment
-    directory, each optionally a table { file = "...", push_as = "..." } to
-    push it under another name."""
-    if not isinstance(raw, list):
-        raise ValueError(f"{where}: files must be a list of file names")
-    files = []
-    for entry in raw:
-        if isinstance(entry, str):
-            entry = {"file": entry}
-        if not isinstance(entry, dict) or not isinstance(entry.get("file"), str) or not entry["file"]:
-            raise ValueError(
-                f"{where}: invalid files entry {entry!r}; want a file name "
-                f'or {{ file = "...", push_as = "..." }}'
-            )
-        unknown = set(entry) - {"file", "push_as"}
-        if unknown:
-            raise ValueError(f"{where}: files entry {entry!r} has unknown keys {sorted(unknown)}")
-        path = exp_file("files", entry["file"])
-        push_as = entry.get("push_as", "") or path.name
-        if not isinstance(push_as, str) or "/" in push_as:
-            raise ValueError(f"{where}: files push_as must be a file name, not {push_as!r}")
-        files.append(PushFile(path, push_as))
-    names = [f.name for f in files]
-    dups = sorted({n for n in names if names.count(n) > 1})
-    if dups:
-        raise ValueError(f"{where}: files pushes more than one file as {', '.join(dups)}")
-    return files
 
 
 def video_length(path: Path) -> float:
@@ -1158,17 +1195,18 @@ def restart_stopped_by_runner(client: Daemon) -> None:
         )
 
 
-def push_files(client: Daemon, exp: Experiment) -> None:
-    """Pushes the experiment's files and its video, if any, to every daemon's
-    files directory (STEELEAGLE_FILES): the orchestrator's and each remote's,
+def push_uploads(client: Daemon, exp: Experiment) -> None:
+    """Pushes the experiment directory's uploads to every daemon's files
+    directory (STEELEAGLE_FILES): the orchestrator's and each remote's,
     through the orchestrator, or with rsync if the remote isn't registered.
-    Each file is saved as its push_as, if set; the video as the phase's
-    push_as, so the driver's config can name one file for every video. With
-    no_upload, the video is not pushed: it is assumed to already be there."""
-    phase = exp.phase
-    pushes = list(exp.files)
-    if phase.video and not phase.no_upload:
-        pushes.append(PushFile(phase.video, phase.push_as or phase.video.name))
+    Each is saved as its push_as, if set, so a driver's config can name one
+    file for every video. Uploads marked no_upload are not pushed: they are
+    assumed to already be there. Called once per directory, before its first
+    experiment."""
+    pushes = [u for u in exp.uploads if not u.no_upload]
+    skipped = [u.name for u in exp.uploads if u.no_upload]
+    if skipped:
+        log(f"not pushing {', '.join(skipped)} (no_upload: assumed to be on the daemons already)")
     if not pushes:
         return
     try:
@@ -1957,7 +1995,6 @@ def run_experiment(client: Daemon, exp: Experiment) -> None:
         f"### experiment {exp.name} ({exp.dir}): {describe(phase)}"
         + (" (not uploaded)" if phase.no_upload else "")
         + f", profiles {', '.join(exp.profiles)}, "
-        + (f"files {', '.join(f.path.name for f in exp.files)}, " if exp.files else "")
         + f"{exp.trials} trial(s) each"
     )
     if phase.duration_from_video:
@@ -1967,16 +2004,14 @@ def run_experiment(client: Daemon, exp: Experiment) -> None:
         for trial in range(1, exp.trials + 1):
             # Each trial starts from freshly restarted daemons, so no state
             # (like a running flow) carries over from the previous one.
-            # Pushed before the daemons restart, so the vehicle's driver
-            # finds the files and video when it starts, even if the previous
-            # trial's result collection moved them away
+            # The uploads were pushed once, before the directory's first
+            # experiment, and stay in the files directory across restarts.
             # However the trial ends (its duration is up, ENTER, Ctrl-C or
             # an error), each daemon gets its own config back
             try:
                 # Taken before the daemons restart, since an engine may
                 # write its files as soon as it starts
                 deferred_before = deferred_files(exp)
-                push_files(client, exp)
                 configure_daemons(client, exp, profile)
                 time.sleep(2)  # let the orchestrator go down before polling it
                 vehicle = client.wait_ready(exp.vehicle, exp.remotes)
@@ -2085,7 +2120,13 @@ def main():
                if found else "No eagled socket was found on this host; is eagled running here?")
         )
     client = Daemon(args.socket)
+    pushed: set[Path] = set()
     for e in exps:
+        # Each directory's uploads are pushed once, before its first
+        # experiment, so the drivers find them when the daemons restart
+        if e.dir not in pushed:
+            push_uploads(client, e)
+            pushed.add(e.dir)
         run_experiment(client, e)
     log(f"done: {len(exps)} experiment(s)")
 

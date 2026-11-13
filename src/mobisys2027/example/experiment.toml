@@ -4,10 +4,6 @@
 [[experiments]]
 name = "onboard_track" # Unique; names the runs and the daemon configs (below)
 vehicle = "" # Vehicle name to target
-# Files pushed to every daemon's files directory (STEELEAGLE_FILES,
-# ~/.local/share/steeleagle/files) at the start of each trial, with either a
-# mission or a video. Each is a file name, or a table to push it under another name
-files = [] # e.g. ["labels.json", { file = "model_v2.pt", push_as = "model.pt" }]
 # Can set one of mission or video
 [experiments.mission]
 # If set, will upload and send this mission to start experiment
@@ -22,16 +18,9 @@ auto = false
 # before stopping; otherwise, will prompt the user to press ENTER once done
 duration = 0
 [experiments.video]
-# Video to run for this experiment
+# Video to run for this experiment: one of the [[uploads]] below, by its file
+# name or the name it is pushed as
 video = ""
-# Name the video is pushed as, so the driver's video arg can stay fixed across
-# experiments (set it to this name). If empty, the video keeps its own name.
-push_as = "" # e.g. "video.mp4"
-# If true, the video is not pushed: it is assumed to already be in every
-# daemon's files directory under its own name, and need not be in the
-# experiment directory (but then duration must be set, unless it is there to
-# find its length). push_as can't be used with it.
-no_upload = false
 # The flow to send to start the experiment; required with video
 flow = ""
 # Whether or not to prompt ENTER to start
@@ -73,13 +62,28 @@ interval = 1 # Seconds per row of the power timeline, >= 0.1 (default 1)
 # vehicle = "drone"
 # [experiments.video]
 # video = "parking.mp4"
-# push_as = "video.mp4"
 # flow = "flow.toml"
 # [experiments.netsim]
 # profiles = ["normal", "malicious"]
 # interface = "tailscale0"
 # port = 9001
 # failpoints = [[5, 5], [60, 20]]
+
+# Files and videos the experiments use, declared once for the whole directory
+# and pushed to every daemon's files directory (STEELEAGLE_FILES,
+# ~/.local/share/steeleagle/files) once, before the first experiment runs.
+# Each file is looked for in the nearest videos/ folder at or above this
+# directory, then in this directory. Every experiment's video must be one of them.
+# [[uploads]]
+# file = "labels.json"
+# [[uploads]]
+# file = "model_v2.pt"
+# push_as = "model.pt" # Name it is saved as (optional; defaults to its own name)
+# [[uploads]]
+# file = "parking.mp4"
+# # true: not pushed, assumed to already be on every daemon under its own name.
+# # It need not be here then, but if it isn't, the video's duration must be set
+# no_upload = true
 
 # Each daemon's config is found by its name and experiment. For each profile,
 # <name>_<experiment>_<profile>.toml

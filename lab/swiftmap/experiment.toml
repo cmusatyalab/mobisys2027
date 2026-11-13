@@ -1,0 +1,33 @@
+# fake_drone replays mill_19_front.mp4 on fermi -> jpeg_encoder -> reachback (fermi)
+# ==network==> swiftmap on lambda2. swiftmap's output folder is the result, and its
+# engine log a catalog. fermi's power draw is measured (the default).
+
+[[experiments]]
+name = "swiftmap"
+vehicle = "drone"
+[experiments.video]
+video = "mill_19_front.mp4"
+flow = "flow.toml"
+auto = true
+# duration unset: each trial runs for the length of the video
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+# Pushed from videos/ to every daemon once, before the first trial
+[[uploads]]
+file = "mill_19_front.mp4"
+
+[daemons]
+[daemons.lambda2]
+orchestrator = true
+prefix = ""
+[daemons.fermi] # the name fermi's daemon registers with
+prefix = "root@fermi:"
+
+[results] # moved off the hosts after each trial
+swiftmap = "lambda2/home/xianglic/swiftmap/output/"
+[catalogs] # copied, the sources are kept
+swiftmap_log = "lambda2/root/.local/share/steeleagle/logs/*.swiftmap.log"
