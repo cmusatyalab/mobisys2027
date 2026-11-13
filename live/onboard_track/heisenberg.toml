@@ -37,5 +37,5 @@
     package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
     plugin = "detection-log"
     [services.plugin.args]
-      detector = "detection-qnn"
+      detector = "detection_qnn"
       refresh = true
