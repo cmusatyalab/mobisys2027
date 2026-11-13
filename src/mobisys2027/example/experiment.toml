@@ -98,7 +98,7 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 [daemons.fermi]
 prefix = "root@fermi:" # SSH/RSYNC prefix; ssh prompts on the terminal if needed
 
-[results] # The sources will be destroyed (uses rsync --remove-source-files)
+[results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
 frames_seen = "fermi/root/.local/share/steeleagle/files/seen"
 frames_sent = "lambda2/root/.local/share/steeleagle/files/sent"
 frames_verified = "lambda2/root/.local/share/steeleagle/files/verified"

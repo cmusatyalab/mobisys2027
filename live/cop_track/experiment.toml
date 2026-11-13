@@ -38,7 +38,7 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 [daemons.heisenberg]
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
-[results] # The sources will be destroyed (uses rsync --remove-source-files)
+[results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
 # detection_log on each side: lambda draws its detection engine's boxes, and
 # heisenberg its detection_qnn's; cop_tracking logs what it chose in its own log
 dets_offboard = "lambda/root/.local/share/steeleagle/files/detection_log/*"

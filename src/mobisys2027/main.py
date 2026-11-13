@@ -39,6 +39,9 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
         timeline_<profile>_<experiment>.csv  every trial's timeline, with a trial column
         power_<profile>_<experiment>.csv     every trial's power timelines, with trial and daemon columns
 
+Once an experiment's last trial is collected, each directory a result names (or
+its glob matches) is removed from its host (rm -rf), along with anything left in it.
+
 Restarting the daemons means every remote daemon and then the local
 orchestrator is reconfigured, which restarts it, and the runner waits for the
 vehicle to be listed and running. A daemon's config is found by its name in
@@ -1303,6 +1306,34 @@ def clear_results(exp: Experiment) -> None:
                 os.remove(p)
 
 
+def remove_result_dirs(exp: Experiment) -> None:
+    """Removes each directory a result source names (or its glob matches) from
+    its host once the experiment is done, like rm -rf: whatever is still in it
+    is deleted too."""
+    for key, src in exp.results.items():
+        host, _, rest = src.partition("/")
+        d = exp.daemons[host]
+        path = "/" + rest
+        if path.rstrip("/") in ("", "/"):
+            raise RuntimeError(f"results.{key} = {src!r}: refusing to remove the root directory")
+        if d.prefix:
+            expand = path if glob.has_magic(path) else shlex.quote(path)
+            script = (
+                f'for f in {expand}; do if [ -d "$f" ] && [ ! -L "$f" ]; then '
+                f'rm -rf -- "$f" && echo "removed $f"; fi; done; true'
+            )
+            r = subprocess.run(ssh(d.ssh_host, script), capture_output=True)
+            for line in r.stdout.decode().splitlines():
+                log(f"{key}: {line} on {d.key}")
+            for line in r.stderr.decode().splitlines():
+                log(f"warning: {key}: {line} on {d.key}")
+            continue
+        for p in glob.glob(path) if glob.has_magic(path) else [path]:
+            if os.path.isdir(p) and not os.path.islink(p):
+                shutil.rmtree(p)
+                log(f"{key}: removed {p}")
+
+
 def deferred_files(exp: Experiment) -> dict[str, set[str]]:
     """The files each defer_pull catalog names now, before a trial, so that only
     the ones the trial adds are renamed after it."""
@@ -2122,6 +2153,7 @@ def run_experiment(
             finally:
                 restore_configs(client, exp)
         log(f"profile {profile} saved to {run_dir}")
+    remove_result_dirs(exp)
     log(f"experiment {exp.name} saved to {exp.dir / 'runs' / exp.name}")
 
 

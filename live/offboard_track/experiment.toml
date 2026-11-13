@@ -36,6 +36,6 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 [daemons.heisenberg]
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
-[results] # The sources will be destroyed (uses rsync --remove-source-files)
+[results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
 dets = "lambda/root/.local/share/steeleagle/files/detection_log/*"
 [catalogs] # The sources will be copied

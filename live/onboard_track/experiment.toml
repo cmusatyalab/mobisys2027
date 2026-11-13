@@ -33,6 +33,6 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 [daemons.heisenberg]
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
-[results] # The sources will be destroyed (uses rsync --remove-source-files)
+[results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
 [catalogs] # The sources will be copied; defer_pull ones are moved on their host into ~/.local/share/steeleagle/files/<experiment>_<profile>_<trial>_<catalog>/ instead, to be transferred later
 dets = { path = "heisenberg/root/.local/share/steeleagle/files/detection_log/*", defer_pull = true }
