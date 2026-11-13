@@ -83,6 +83,7 @@ from steeleagle_protocol.v1.services.vehicle import (
 )
 
 EXPERIMENT_FILE = "experiment.toml"
+VIDEOS_DIR = "videos"  # looked for at and above the experiment directory, before it
 NETSIM = Path(__file__).resolve().parent / "netsim" / "netsim.py"
 # Run on each remote daemon's host for the length of each trial, to measure
 # its power draw; written for the Particle Tachyon
@@ -394,6 +395,17 @@ def load_experiments(exp_dir: Path, names: list[str] | None = None) -> list[Expe
     return [parse_experiment(exp_dir, t, daemons, results, catalogs, defer_pull) for t in tables]
 
 
+def find_video(exp_dir: Path, name: str) -> Path:
+    """Where the video name is: in the nearest videos/ folder at or above
+    exp_dir that has it, or else in exp_dir itself (which may not have it
+    either)."""
+    for d in (exp_dir.resolve(), *exp_dir.resolve().parents):
+        path = d / VIDEOS_DIR / name
+        if path.is_file():
+            return path
+    return exp_dir / name
+
+
 def parse_experiment(
     exp_dir: Path, exp: dict, daemons: dict[str, DaemonCfg],
     results: dict[str, str], catalogs: dict[str, str], defer_pull: set[str],
@@ -455,9 +467,14 @@ def parse_experiment(
         no_upload = flag(sect, "video.no_upload")
         if no_upload:
             # Not pushed, so it need not exist here; only its name is used
-            video = exp_dir / file_name("video.video (with no_upload)", sect["video"])
+            video = find_video(exp_dir, file_name("video.video (with no_upload)", sect["video"]))
         else:
-            video = exp_file("video.video", sect["video"])
+            video = find_video(exp_dir, sect["video"])
+            if not video.is_file():
+                raise ValueError(
+                    f"{where}: video.video file {sect['video']} is in neither a "
+                    f"{VIDEOS_DIR}/ folder nor {exp_dir}"
+                )
         push_as = sect.get("push_as", "")
         if push_as:
             file_name("video.push_as", push_as)
@@ -469,8 +486,8 @@ def parse_experiment(
             # No duration set: the video runs for its own length
             if no_upload and not video.is_file():
                 raise ValueError(
-                    f"{where}: with no_upload, video {video.name} is not in the experiment "
-                    f"directory to find its length; set video.duration"
+                    f"{where}: with no_upload, video {video.name} is not in a {VIDEOS_DIR}/ "
+                    f"folder or the experiment directory to find its length; set video.duration"
                 )
             try:
                 d = video_length(video)

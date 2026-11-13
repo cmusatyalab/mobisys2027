@@ -143,7 +143,7 @@ Every file the experiment uses lives next to its `experiment.toml`:
 ```
 my_experiment/
 ├── experiment.toml
-├── traintrack.mp4, flow.toml        # the videos, flows and missions the experiments name
+├── traintrack.mp4, flow.toml        # the videos (or in a videos/ folder above), flows and missions the experiments name
 ├── labels.json                      # (optional) any files listed in an experiment's files
 ├── lambda2.toml                     # config for daemon "lambda2", for every experiment
 ├── fermi.toml                       # config for daemon "fermi", for every experiment
@@ -211,7 +211,7 @@ The other may be left out, or kept with its files set to `""`.
 |----------------------|------------------------------------------------------------------------------------------|
 | `file` (mission)     | Mission file in the experiment directory                                                 |
 | `no_upload` (mission)| `true`: don't upload the mission; it's assumed to already be on the vehicle under its own name, and is just loaded |
-| `video` (video)      | A single video file in the experiment directory. For several videos, add an experiment for each |
+| `video` (video)      | A single video file, looked for first in the nearest `videos/` folder at or above the experiment directory, then in the experiment directory. For several videos, add an experiment for each |
 | `push_as` (video)    | Name the video is pushed as (optional; defaults to the video's own name)                 |
 | `no_upload` (video)  | `true`: don't push the video; it's assumed to already be on every daemon (see below)     |
 | `flow` (video)       | Flow file in the experiment directory, sent with `SetDataflow` to start each trial       |
