@@ -1,0 +1,23 @@
+[project]
+name = "mobisys2027"
+version = "0.1.0"
+description = "Automatic experiment runner for SteelEagle Mobisys 2027"
+readme = "README.md"
+authors = [
+    { name = "Mihir Bala", email = "mkbala42@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "steeleagle-protocol",
+]
+
+[project.scripts]
+experiment = "mobisys2027.main:main"
+netsim = "mobisys2027.netsim.netsim:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+steeleagle-protocol = { git = "https://github.com/cmusatyalab/steeleagle", subdirectory = "api/python", tag = "api/python/v0.3.7" }
