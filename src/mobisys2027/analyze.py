@@ -67,7 +67,8 @@ def results_dir(top: str) -> Path:
 def fig_path(name: str, ext: str) -> Path:
     """results/figs/<name>.<ext> of the section the figure belongs to (its
     name starts with the section's number, e.g. 2.1.1.2-...)."""
-    top = next((t for t in TOPS if name.startswith(t.split("-")[0] + ".")), TOPS[-1])
+    top = next((t for t in TOPS if name.startswith(t.split("-")[0]) and name[len(t.split("-")[0])] in ".-"),
+               TOPS[-1])
     d = results_dir(top) / "figs"
     d.mkdir(parents=True, exist_ok=True)
     return d / f"{name}.{ext}"

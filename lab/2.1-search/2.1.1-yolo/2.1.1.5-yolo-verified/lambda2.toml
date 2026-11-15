@@ -24,13 +24,14 @@ type = "engine"
 plugin = "webp_decoder"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
 
-# RF-DETR 2XLarge on lambda2's GPU
+# RF-DETR 2XLarge on lambda2's GPU (torch for CUDA 12.6)
 [[services]]
 name = "verifier"
 type = "engine"
 [services.plugin]
 plugin = "detection"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection@v4_backend_rework"
+environment = "cuda126"
 [services.plugin.args]
 model = "rfdetr"
 rfdetr_size = "2xlarge"

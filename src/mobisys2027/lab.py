@@ -238,7 +238,10 @@ def rfdetr(confidence=None, person=False, crops=False, early_discard=False, name
         args["letterbox"] = True
     if early_discard:
         args["early_discard"] = True
-    return Service(name, "detection", "engines/detection", args, comment="RF-DETR 2XLarge on lambda2's GPU")
+    # cuda126: torch built for CUDA 12.6; the default environment's (CUDA 13)
+    # needs a newer driver than lambda2's (12.8), and falls back to the CPU
+    return Service(name, "detection", "engines/detection", args, environment="cuda126",
+                   comment="RF-DETR 2XLarge on lambda2's GPU (torch for CUDA 12.6)")
 
 
 def crop(verifier: str) -> Service:
