@@ -7,15 +7,17 @@ lcs = 9001
 hostname = "fermi"
 orchestrator = "lambda2:9000"
 
-# Replays street.mp4 once, then black frames until stopped; logs each frame
+# Replays street.mp4 once, then black frames until stopped; logs each frame; hardware decoder
 [[services]]
 name = "drone"
 type = "vehicle"
 [services.plugin]
 plugin = "fake_drone"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+environment = "native"
 [services.plugin.args]
 video = "street.mp4"
+decoder = "qtic2vdec"
 no_loop = true
 frame_log = "mb/frames.csv"
 pad_after = true

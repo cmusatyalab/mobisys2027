@@ -177,14 +177,18 @@ def flow_toml(edges: list[tuple[str, str]], comment: str) -> str:
 def drone(src: Source, pad: bool) -> Service:
     args: dict = {"no_loop": True, "frame_log": f"{LOG_DIR}/frames.csv"}
     if src.kind == "video":
-        args = {"video": src.upload, **args}
+        # The Tachyon's hardware decoder, as heisenberg's drone uses: avdec_h264
+        # can't decode 1080p in real time there
+        args = {"video": src.upload, "decoder": "qtic2vdec", **args}
     else:
         args = {"images": src.upload, "fps": src.fps, **args}
     if pad:
         args["pad_after"] = True
     what = f"the images in {src.upload} at {src.fps:g} fps" if src.kind == "images" else src.upload
     return Service("drone", "fake_drone", "drivers/fake_drone", args, type="vehicle",
-                   comment=f"Replays {what} once{', then black frames until stopped' if pad else ''}; logs each frame")
+                   environment="native" if src.kind == "video" else "",
+                   comment=f"Replays {what} once{', then black frames until stopped' if pad else ''}; logs each frame"
+                           + ("; hardware decoder" if src.kind == "video" else ""))
 
 
 def qnn(confidence=None, person=True, early_discard=True) -> Service:

@@ -1540,7 +1540,9 @@ def defer_pull(exp: Experiment, key: str, before: set[str], profile: str, trial:
         log(f"warning: {len(taken)} file(s) of {key} weren't moved, since their name is taken in {dest} (e.g. {taken[0]})")
 
 
-def rsync(exp: Experiment, src: str, dest: Path, move: bool) -> None:
+def rsync(exp: Experiment, src: str, dest: Path, move: bool) -> bool:
+    """Copies (or moves) src's files into dest. False if rsync failed; a
+    local path that matches nothing is only warned about."""
     host, _, rest = src.partition("/")
     d = exp.daemons[host]
     path = "/" + rest
@@ -1561,12 +1563,14 @@ def rsync(exp: Experiment, src: str, dest: Path, move: bool) -> None:
         sources = sorted(glob.glob(path))
         if not sources:
             log(f"warning: nothing matches {path}")
-            return
+            return True
         if len(sources) == 1 and not glob.has_magic(path) and os.path.isdir(sources[0]):
             sources = [sources[0].rstrip("/") + "/"]
     r = subprocess.run(cmd + sources + [str(dest) + "/"])
     if r.returncode:
         log(f"warning: rsync of {src} exited {r.returncode}")
+        return False
+    return True
 
 
 # --------------------------------------------------------------------------
@@ -2067,12 +2071,18 @@ def drop_trial_rows(run_dir: Path, label: str, trial: int) -> None:
 def cleanup(
     exp: Experiment, run_dir: Path, trial_dir: Path, netsim: Netsim, power: PowerMonitor, label: str,
     profile: str, trial: int, wall_sec: float, deferred_before: dict[str, set[str]], started: bool = True,
-) -> None:
+) -> bool:
+    """Stops the trial's measurements and collects its files. False if its
+    [results] could not all be collected, or none came back."""
     netsim.stop()
     power.stop()  # stopped already, unless stopping the mission failed
+    collected = True
     for key, src in exp.results.items():
         log(f"moving {key} from {src}")
-        rsync(exp, src, trial_dir / "result" / key, move=True)
+        collected &= rsync(exp, src, trial_dir / "result" / key, move=True)
+    if exp.results and not any(p.is_file() for p in (trial_dir / "result").rglob("*")):
+        log("warning: the trial's [results] came back empty")
+        collected = False
     for key, src in exp.catalogs.items():
         if key in exp.defer_pull:
             defer_pull(exp, key, deferred_before.get(key, set()), profile, trial)
@@ -2084,6 +2094,7 @@ def cleanup(
     else:
         log("the trial didn't start, so no stats are written for it")
     log(f"trial saved to {trial_dir}")
+    return collected
 
 
 def describe(phase: Phase) -> str:
@@ -2283,8 +2294,12 @@ def run_trial(
         except grpc.RpcError as e:
             log(f"warning: couldn't stop the services: {e.code().name} {e.details()}")
         try:
-            cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
-            if finished:  # so a later run skips it
+            collected = cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall,
+                                deferred_before, started)
+            if finished and not collected:
+                log(f"warning: not marking {trial_dir} complete, since its results weren't all collected; "
+                    "the next run runs it again")
+            elif finished:  # so a later run skips it
                 (trial_dir / TRIAL_DONE).write_text(f"{datetime.now().isoformat(timespec='seconds')}\n")
         finally:
             # However the trial ended, once it has been stopped and collected
