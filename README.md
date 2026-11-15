@@ -104,7 +104,7 @@ through.
 | `-e, --experiment NAME` | Run only the experiment named `NAME` (repeat for several). Not with `-r` or several paths |
 | `-l, --list`      | List the experiments in `path` (with `-r`, in each directory) and exit      |
 | `-p, --profile PROFILE` | Run only the netsim profile `PROFILE` (repeat, or separate with commas, for several) |
-| `--overwrite`     | Delete an earlier run's results for a profile and write in its place (see [Output](#output)) |
+| `--overwrite`     | Run every trial again, deleting earlier results (with `-t`, only that trial's). Without it, trials already complete are skipped (see [Output](#output)) |
 | `-t, --trial N`   | Run only trial `N` of each profile, into its existing results folder (see [Output](#output)) |
 | `--update-packages` | Reinstall every package the daemons' configs use, once per daemon per run, to get a branch's latest code (see below) |
 | `--zip-dir DIR`   | When the run ends, zip the results folders it wrote into `DIR/<date>-<time>.zip` (default `archives/`). A run stopped early (Ctrl-C, an error) still zips what it saved, as `<date>-<time>-partial.zip` |
@@ -618,17 +618,22 @@ can also be restored by running the runner again.
 ## Output
 
 Each profile's trials go to `runs/<experiment>/<profile>/` in the experiment
-directory. If that folder already exists (from an earlier run), a timestamp is
-added (`runs/onboard_track/normal-20261110-031500/`), so nothing is
-overwritten. With `--overwrite`, the earlier folder is deleted instead and the
-new results go in its place; only the profiles that run are touched.
+directory. A trial that runs to the end and is collected gets a `complete`
+file in its `trial_<n>/`. Running an experiment again picks up where it left
+off: trials already complete are skipped, and only the missing ones run (an
+unfinished one, e.g. stopped with Ctrl-C, is cleared and run again). So a
+quick pass with `-t 1`, and then the full run, runs each trial once. The
+runner logs what it skips, and its trial count and estimate cover only what
+is left.
 
-`-t N` runs a single trial per profile and adds it to the existing
-`runs/<experiment>/<profile>/` folder (created if missing; never timestamped).
-If `trial_N` is free it is used; if it exists, the trial is saved as the next
-number after the highest trial there. With `--overwrite`, `trial_N` and its
-rows in the profile's stats, timeline and power CSVs are deleted and replaced
-by the new trial; the other trials are left alone:
+With `--overwrite`, everything runs again: each profile's earlier folder is
+deleted and the new results go in its place; only the profiles that run are
+touched.
+
+`-t N` runs only trial N of each profile, into the same folder: it is
+skipped if already complete. With `--overwrite`, `trial_N` and its rows in the
+profile's stats, timeline and power CSVs are deleted and replaced by the new
+trial; the other trials are left alone:
 
 ```bash
 uv run experiment path/to/my_experiment -p normal -t 2 --overwrite

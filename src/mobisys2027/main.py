@@ -183,9 +183,9 @@ class Progress:
         self.trial_started: float | None = None
         self.trial_expected = 0.0
 
-    def add(self, exp: "Experiment", trials_per_profile: int) -> None:
+    def add(self, exp: "Experiment", n: int) -> None:
+        """Counts n trials of exp to run."""
         run = exp.phase.duration + exp.phase.grace
-        n = len(exp.profiles) * trials_per_profile
         self.pending += [run] * n
         self.total += n
 
@@ -1996,18 +1996,46 @@ def check_flow(path: Path) -> None:
             raise ValueError(f"flow {path}: engine {name!r} has location {location!r}")
 
 
-def new_run_dir(exp: Experiment, profile: str, overwrite: bool = False) -> Path:
-    """An empty run directory for profile. If an earlier run's results are
-    there, they are deleted with overwrite; otherwise the new directory gets a
-    timestamp, so nothing is overwritten."""
-    run_dir = exp.dir / "runs" / exp.name / profile
-    if run_dir.exists():
-        if overwrite:
-            log(f"--overwrite: deleting the earlier results in {run_dir}")
-            shutil.rmtree(run_dir)
-        else:
-            run_dir = run_dir.with_name(f"{profile}-{datetime.now():%Y%m%d-%H%M%S}")
-    run_dir.mkdir(parents=True)
+TRIAL_DONE = "complete"  # written into a trial's directory once it has run to the end and been collected
+
+
+def run_dir_of(exp: Experiment, profile: str) -> Path:
+    return exp.dir / "runs" / exp.name / profile
+
+
+def done_trials(run_dir: Path) -> set[int]:
+    """The trials in run_dir that ran to the end (an interrupted or failed
+    one has no TRIAL_DONE file)."""
+    return {t for t in trial_numbers(run_dir) if (run_dir / f"trial_{t}" / TRIAL_DONE).is_file()}
+
+
+def pending_trials(exp: Experiment, profile: str, only_trial: int | None, overwrite: bool) -> list[int]:
+    """The trials of profile to run: trial only_trial (-t) or 1..trials,
+    leaving out those already done unless overwrite."""
+    wanted = [only_trial] if only_trial else list(range(1, exp.trials + 1))
+    if overwrite:
+        return wanted
+    done = done_trials(run_dir_of(exp, profile))
+    return [t for t in wanted if t not in done]
+
+
+def prepare_run_dir(exp: Experiment, profile: str, trials: list[int], only_trial: int | None,
+                    overwrite: bool) -> Path:
+    """The profile's run directory, ready for `trials`. With overwrite, all
+    its earlier results go (with -t, only that trial's); otherwise finished
+    trials are kept and a trial left unfinished is cleared to run again."""
+    run_dir = run_dir_of(exp, profile)
+    label = f"{profile}_{exp.name}"
+    if overwrite and not only_trial and run_dir.exists():
+        log(f"--overwrite: deleting the earlier results in {run_dir}")
+        shutil.rmtree(run_dir)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    for t in trials:
+        trial_dir = run_dir / f"trial_{t}"
+        if trial_dir.exists():
+            log(f"{'--overwrite: deleting' if overwrite else 'clearing the unfinished'} trial {trial_dir}")
+            shutil.rmtree(trial_dir)
+        drop_trial_rows(run_dir, label, t)
     return run_dir
 
 
@@ -2034,28 +2062,6 @@ def drop_trial_rows(run_dir: Path, label: str, trial: int) -> None:
             w = csv.DictWriter(f, fieldnames=columns)
             w.writeheader()
             w.writerows(rows)
-
-
-def single_trial_dir(exp: Experiment, profile: str, trial: int, overwrite: bool) -> tuple[Path, int]:
-    """For -t: the profile's run directory (created if missing, never
-    timestamped) and the trial number to run. With overwrite, trial_<trial>
-    and its rows in the profile's CSVs are deleted and trial is reused;
-    otherwise trial is used if it is free, or else the next number after the
-    highest trial there, so nothing is overwritten."""
-    run_dir = exp.dir / "runs" / exp.name / profile
-    run_dir.mkdir(parents=True, exist_ok=True)
-    trial_dir = run_dir / f"trial_{trial}"
-    if overwrite:
-        if trial_dir.exists():
-            log(f"--overwrite: deleting the earlier trial {trial_dir}")
-            shutil.rmtree(trial_dir)
-        drop_trial_rows(run_dir, f"{profile}_{exp.name}", trial)
-        return run_dir, trial
-    if trial_dir.exists():
-        new = max(trial_numbers(run_dir)) + 1
-        log(f"{trial_dir} exists; saving this trial as trial_{new} instead")
-        return run_dir, new
-    return run_dir, trial
 
 
 def cleanup(
@@ -2243,7 +2249,7 @@ def run_trial(
         input(f"[{exp.name} {profile} {trial}/{exp.trials}] Press ENTER to start the {phase.kind}... ")
 
     wall = 0.0
-    started = False
+    started = finished = False
     try:
         if phase.kind == "mission":
             client.start_mission(vehicle)
@@ -2259,6 +2265,7 @@ def run_trial(
         # flow, netsim and the power measurement
         run_hook(exp, "grace", profile, trial, trial_dir, vehicle)
         wall += wait_grace(phase.grace)
+        finished = True
     finally:
         # Before the mission and services stop, so the power timeline covers
         # the trial's run only, as the bandwidth timeline does
@@ -2277,6 +2284,8 @@ def run_trial(
             log(f"warning: couldn't stop the services: {e.code().name} {e.details()}")
         try:
             cleanup(exp, run_dir, trial_dir, netsim, power, label, profile, trial, wall, deferred_before, started)
+            if finished:  # so a later run skips it
+                (trial_dir / TRIAL_DONE).write_text(f"{datetime.now().isoformat(timespec='seconds')}\n")
         finally:
             # However the trial ended, once it has been stopped and collected
             run_hook(exp, "end", profile, trial, trial_dir, vehicle)
@@ -2286,9 +2295,10 @@ def run_experiment(
     client: Daemon, exp: Experiment, overwrite: bool = False, only_trial: int | None = None,
     written: list[Path] | None = None,
 ) -> None:
-    """Runs every trial of each profile, or, with only_trial, that one trial
-    (see single_trial_dir). Each profile's results directory is added to
-    `written` as soon as it is made, so an interrupted run's are known too."""
+    """Runs the trials of each profile not done yet (pending_trials): every
+    trial, or with only_trial, that one; with overwrite, done or not. Each
+    profile's results directory is added to `written` as soon as it is made,
+    so an interrupted run's are known too."""
     phase = exp.phase
     log(
         f"### experiment {exp.name} ({exp.dir}): {describe(phase)}"
@@ -2301,12 +2311,14 @@ def run_experiment(
     if phase.grace:
         log(f"each trial keeps running for a {phase.grace:g}s grace period after that")
     for profile in exp.profiles:
-        if only_trial:
-            run_dir, trial = single_trial_dir(exp, profile, only_trial, overwrite)
-            trials = [trial]
-        else:
-            run_dir = new_run_dir(exp, profile, overwrite)
-            trials = range(1, exp.trials + 1)
+        trials = pending_trials(exp, profile, only_trial, overwrite)
+        if not trials:
+            log(f"profile {profile}: already done in {run_dir_of(exp, profile)} (--overwrite to run it again)")
+            continue
+        skipped = sorted(done_trials(run_dir_of(exp, profile)) - set(trials)) if not overwrite else []
+        if skipped:
+            log(f"profile {profile}: skipping trial(s) {', '.join(map(str, skipped))}, already done")
+        run_dir = prepare_run_dir(exp, profile, trials, only_trial, overwrite)
         if written is not None and run_dir not in written:
             written.append(run_dir)
         for trial in trials:
@@ -2452,13 +2464,13 @@ def main():
     )
     ap.add_argument(
         "--overwrite", action="store_true",
-        help="delete an earlier run's results for a profile and write in its place, "
-        "instead of saving to a timestamped folder beside it",
+        help="run every trial again, deleting the earlier results of each profile run (with -t, only "
+        "that trial's). Without it, trials already done are skipped and only the missing ones run",
     )
     ap.add_argument(
         "-t", "--trial", type=int, metavar="N",
-        help="run only trial N of each profile, into its existing results folder: with --overwrite, "
-        "trial_N is replaced; otherwise it is added as trial_N, or, if that exists, as the next free trial",
+        help="run only trial N of each profile, into its results folder (skipped if already done; "
+        "with --overwrite, replaced)",
     )
     ap.add_argument(
         "--update-packages", action="store_true",
@@ -2538,8 +2550,15 @@ def main():
                if found else "No eagled socket was found on this host; is eagled running here?")
         )
     client = Daemon(args.socket)
+    todo = {id(e): sum(len(pending_trials(e, p, args.trial, args.overwrite)) for p in e.profiles) for e in exps}
     for e in exps:
-        PROGRESS.add(e, 1 if args.trial else e.trials)
+        PROGRESS.add(e, todo[id(e)])
+    if not PROGRESS.total:
+        log("every trial is already done (--overwrite to run them again)")
+        return
+    done = sum(len(e.profiles) * (1 if args.trial else e.trials) for e in exps) - PROGRESS.total
+    if done and not args.overwrite:
+        log(f"{done} trial(s) already done are skipped (--overwrite to run them again)")
     PROGRESS.started = time.monotonic()
     log(f"{PROGRESS.total} trial(s) in {len(exps)} experiment(s); {PROGRESS.summary()}")
     pushed: set[Path] = set()
@@ -2547,6 +2566,9 @@ def main():
     finished = False
     try:
         for e in exps:
+            if not todo[id(e)]:
+                log(f"### experiment {e.name} ({e.dir}): already done")
+                continue
             # Each directory's uploads are pushed once, before its first
             # experiment, so the drivers find them when the daemons restart
             if e.dir not in pushed:
