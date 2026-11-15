@@ -77,8 +77,9 @@ import sys
 import tempfile
 import time
 import tomllib
+import zipfile
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import grpc
@@ -99,6 +100,8 @@ from steeleagle_protocol.v1.services.vehicle import (
 
 EXPERIMENT_FILE = "experiment.toml"
 VIDEOS_DIR = "videos"  # looked for at and above the experiment directory, before it
+# Images and other media the experiments upload (e.g. a prompt image), looked for like videos/
+MEDIA_DIR = "media"
 NETSIM = Path(__file__).resolve().parent / "netsim" / "netsim.py"
 # Run on each remote daemon's host for the length of each trial, to measure
 # its power draw; written for the Particle Tachyon
@@ -150,6 +153,103 @@ REMOTE_PATH = 'PATH="$HOME/.local/bin:$PATH"'
 
 def log(msg: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
+
+
+# Seconds a trial is assumed to spend outside its duration and grace (daemon
+# restarts, collecting results) until one has been timed
+TRIAL_OVERHEAD_GUESS = 60.0
+BAR_WIDTH = 30
+
+
+def fmt_secs(secs: float) -> str:
+    secs = max(0, int(round(secs)))
+    h, rest = divmod(secs, 3600)
+    m, s = divmod(rest, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+class Progress:
+    """Counts the trials of the run and estimates when it ends. A trial is
+    expected to take its duration and grace, plus the overhead of the trials
+    timed so far (restarts, collection), or TRIAL_OVERHEAD_GUESS before any.
+    A trial run until ENTER (duration 0) counts only its overhead."""
+
+    def __init__(self) -> None:
+        self.started = time.monotonic()
+        self.pending: list[float] = []  # expected run time (duration + grace) of each trial left
+        self.total = 0
+        self.done = 0
+        self.overheads: list[float] = []
+        self.trial_started: float | None = None
+        self.trial_expected = 0.0
+
+    def add(self, exp: "Experiment", trials_per_profile: int) -> None:
+        run = exp.phase.duration + exp.phase.grace
+        n = len(exp.profiles) * trials_per_profile
+        self.pending += [run] * n
+        self.total += n
+
+    @property
+    def overhead(self) -> float:
+        return sum(self.overheads) / len(self.overheads) if self.overheads else TRIAL_OVERHEAD_GUESS
+
+    def remaining(self) -> float:
+        """Estimated seconds until the run ends."""
+        left = sum(r + self.overhead for r in self.pending)
+        if self.trial_started is not None:
+            spent = time.monotonic() - self.trial_started
+            left += max(0.0, self.trial_expected + self.overhead - spent)
+        return left
+
+    def bar(self, fraction: float) -> str:
+        fraction = min(max(fraction, 0.0), 1.0)
+        filled = round(fraction * BAR_WIDTH)
+        return "[" + "#" * filled + "-" * (BAR_WIDTH - filled) + f"] {fraction * 100:5.1f}%"
+
+    def summary(self) -> str:
+        """The run's progress: trials done, elapsed, and the estimated end."""
+        left = self.remaining()
+        elapsed = time.monotonic() - self.started
+        frac = elapsed / (elapsed + left) if elapsed + left > 0 else 0.0
+        eta = datetime.now() + timedelta(seconds=left)
+        return (f"{self.bar(frac)} {self.done}/{self.total} trials, elapsed {fmt_secs(elapsed)}, "
+                f"~{fmt_secs(left)} left, done ~{eta:%a %H:%M}")
+
+    def start_trial(self) -> None:
+        self.trial_expected = self.pending.pop(0) if self.pending else 0.0
+        self.trial_started = time.monotonic()
+        log(f"progress {self.summary()}")
+
+    def end_trial(self) -> None:
+        if self.trial_started is None:
+            return
+        spent = time.monotonic() - self.trial_started
+        self.overheads.append(max(0.0, spent - self.trial_expected))
+        self.trial_started = None
+        self.done += 1
+
+    def sleep(self, secs: float, what: str) -> None:
+        """Sleeps `secs`, drawing a live bar of the wait on a terminal."""
+        if secs <= 0:
+            return
+        if not sys.stdout.isatty():
+            time.sleep(secs)
+            return
+        end = time.monotonic() + secs
+        try:
+            while (now := time.monotonic()) < end:
+                line = (f"\r  {what} {self.bar(1 - (end - now) / secs)} {fmt_secs(end - now)} left | "
+                        f"run: {self.done}/{self.total} trials, ~{fmt_secs(self.remaining())} left")
+                cols = shutil.get_terminal_size((120, 20)).columns
+                sys.stdout.write(line[: cols - 1].ljust(cols - 1))
+                sys.stdout.flush()
+                time.sleep(min(1.0, end - now))
+        finally:
+            sys.stdout.write("\r" + " " * (shutil.get_terminal_size((120, 20)).columns - 1) + "\r")
+            sys.stdout.flush()
+
+
+PROGRESS = Progress()
 
 
 def default_socket() -> str:
@@ -487,13 +587,14 @@ def check_results_spare_uploads(exp_dir: Path, results: dict[str, str], uploads:
 
 
 def find_video(exp_dir: Path, name: str) -> Path:
-    """Where the video name is: in the nearest videos/ folder at or above
-    exp_dir that has it, or else in exp_dir itself (which may not have it
-    either)."""
+    """Where the video (or other upload) name is: in the nearest videos/ or
+    media/ folder at or above exp_dir that has it, or else in exp_dir itself
+    (which may not have it either)."""
     for d in (exp_dir.resolve(), *exp_dir.resolve().parents):
-        path = d / VIDEOS_DIR / name
-        if path.is_file():
-            return path
+        for folder in (VIDEOS_DIR, MEDIA_DIR):
+            path = d / folder / name
+            if path.is_file():
+                return path
     return exp_dir / name
 
 
@@ -1809,7 +1910,7 @@ def wait_for(duration: float, what: str) -> float:
     t0 = time.monotonic()
     if duration > 0:
         log(f"running {what} for {duration:g}s")
-        time.sleep(duration)
+        PROGRESS.sleep(duration, "trial")
     else:
         input(f"Running {what}. Press ENTER to stop... ")
     return time.monotonic() - t0
@@ -1821,7 +1922,7 @@ def wait_grace(grace: float) -> float:
         return 0.0
     t0 = time.monotonic()
     log(f"grace period: waiting {grace:g}s more before stopping")
-    time.sleep(grace)
+    PROGRESS.sleep(grace, "grace")
     return time.monotonic() - t0
 
 
@@ -2183,9 +2284,11 @@ def run_trial(
 
 def run_experiment(
     client: Daemon, exp: Experiment, overwrite: bool = False, only_trial: int | None = None,
+    written: list[Path] | None = None,
 ) -> None:
     """Runs every trial of each profile, or, with only_trial, that one trial
-    (see single_trial_dir)."""
+    (see single_trial_dir). Each profile's results directory is added to
+    `written` as soon as it is made, so an interrupted run's are known too."""
     phase = exp.phase
     log(
         f"### experiment {exp.name} ({exp.dir}): {describe(phase)}"
@@ -2204,6 +2307,8 @@ def run_experiment(
         else:
             run_dir = new_run_dir(exp, profile, overwrite)
             trials = range(1, exp.trials + 1)
+        if written is not None and run_dir not in written:
+            written.append(run_dir)
         for trial in trials:
             # Each trial starts from freshly restarted daemons, so no state
             # (like a running flow) carries over from the previous one.
@@ -2211,6 +2316,7 @@ def run_experiment(
             # experiment, and stay in the files directory across restarts.
             # However the trial ends (its duration is up, ENTER, Ctrl-C or
             # an error), each daemon gets its own config back
+            PROGRESS.start_trial()
             try:
                 # Taken before the daemons restart, since an engine may
                 # write its files as soon as it starts
@@ -2224,16 +2330,54 @@ def run_experiment(
                 run_trial(client, exp, vehicle, profile, run_dir, trial, deferred_before)
             finally:
                 restore_configs(client, exp)
+                PROGRESS.end_trial()
         log(f"profile {profile} saved to {run_dir}")
     remove_result_dirs(exp)
     log(f"experiment {exp.name} saved to {exp.dir / 'runs' / exp.name}")
 
 
-def find_experiment_dirs(root: Path) -> list[Path]:
-    dirs = sorted(p for p in root.iterdir() if (p / EXPERIMENT_FILE).is_file())
+def zip_results(run_dirs: list[Path], out_dir: Path, partial: bool = False) -> Path | None:
+    """Zips run_dirs (each a profile's results: its trials and CSVs) into
+    out_dir/<date>-<time>[-partial].zip, to keep or copy off the machine. Paths
+    in the zip are relative to the current directory when under it (e.g.
+    lab/.../runs/<experiment>/<profile>/...), else to each experiment
+    directory's parent."""
+    dirs = [d for d in run_dirs if d.is_dir()]
     if not dirs:
-        raise SystemExit(f"no experiment directories (with {EXPERIMENT_FILE}) in {root}")
-    return dirs
+        return None
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"{datetime.now():%Y%m%d-%H%M%S}{'-partial' if partial else ''}.zip"
+    cwd = Path.cwd().resolve()
+    files = 0
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+        for d in dirs:
+            d = d.resolve()
+            # <exp dir>/runs/<experiment>/<profile>: name it from the exp dir's parent
+            base = cwd if d.is_relative_to(cwd) else d.parents[3]
+            for f in sorted(d.rglob("*")):
+                if f.is_file():
+                    z.write(f, f.relative_to(base))
+                    files += 1
+    log(f"zipped {files} file(s) from {len(dirs)} results folder(s) into {path} "
+        f"({path.stat().st_size / 1e6:.1f} MB)")
+    return path
+
+
+def find_experiment_dirs(root: Path) -> list[Path]:
+    """Every experiment directory (one with an experiment.toml) under root, at
+    any depth, in alphabetical order of path. An experiment directory's own
+    subdirectories (e.g. runs/) are not searched."""
+
+    def walk(d: Path):
+        for p in sorted(d.iterdir()):
+            if not p.is_dir() or p.name.startswith(".") or p.name in (VIDEOS_DIR, MEDIA_DIR, "runs"):
+                continue
+            if (p / EXPERIMENT_FILE).is_file():
+                yield p
+            else:
+                yield from walk(p)
+
+    return list(walk(root))
 
 
 def list_experiments(exp_dir: Path, names: list[str] | None = None) -> None:
@@ -2281,9 +2425,18 @@ def select_profiles(exps: list[Experiment], picked: list[str]) -> list[Experimen
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Run SteelEagle experiments.")
-    ap.add_argument("path", type=Path, help="experiment directory (or, with -r, a directory of them)")
-    ap.add_argument("-r", "--recursive", action="store_true", help="run every experiment directory inside path")
+    ap = argparse.ArgumentParser(
+        description="Run SteelEagle experiments.", fromfile_prefix_chars="@",
+        epilog="@FILE reads more paths (and options) from FILE, one per line.",
+    )
+    ap.add_argument(
+        "paths", nargs="+", type=Path, metavar="path",
+        help="experiment directories, run in the order given (with -r, directories of them)",
+    )
+    ap.add_argument(
+        "-r", "--recursive", action="store_true",
+        help="run every experiment directory inside each path, at any depth",
+    )
     ap.add_argument(
         "-e", "--experiment", action="append", dest="experiments", metavar="NAME",
         help="run only the experiment with this name in path's experiment.toml (repeat for several)",
@@ -2312,22 +2465,40 @@ def main():
         help="reinstall every package the daemons' configs use, once per daemon per run, "
         "to get a branch's latest code (missing packages are always installed)",
     )
+    ap.add_argument(
+        "--zip-dir", type=Path, default=Path("archives"), metavar="DIR",
+        help="when the run ends, zip the results folders it wrote into DIR/<date>-<time>.zip "
+        "(-partial if it stopped early; default %(default)s)",
+    )
+    ap.add_argument("--no-zip", action="store_true", help="don't zip the results when the run ends")
     ap.add_argument("--socket", default=default_socket(), help="daemon control socket (default: %(default)s)")
     args = ap.parse_args()
     global UPDATE_PACKAGES
     UPDATE_PACKAGES = args.update_packages
     if args.trial is not None and args.trial < 1:
         ap.error("-t takes a trial number >= 1")
-    if args.recursive and args.experiments:
-        ap.error("-e picks experiments in one directory's experiment.toml; it can't be used with -r")
+    if (args.recursive or len(args.paths) > 1) and args.experiments:
+        ap.error("-e picks experiments in one directory's experiment.toml; it can't be used with -r "
+                 "or several paths")
 
-    root = args.path.resolve()
-    if args.recursive:
-        exp_dirs = find_experiment_dirs(root)
-    elif (root / EXPERIMENT_FILE).is_file():
-        exp_dirs = [root]
-    else:
-        raise SystemExit(f"{root} has no {EXPERIMENT_FILE} (use -r for a directory of experiments)")
+    exp_dirs: list[Path] = []
+    for path in args.paths:
+        root = path.resolve()
+        if not root.is_dir():
+            raise SystemExit(f"{path}: no such directory")
+        if (root / EXPERIMENT_FILE).is_file():
+            found = [root]
+        elif args.recursive:
+            found = find_experiment_dirs(root)
+            if not found:
+                log(f"skipping {path}: no experiment directories (with {EXPERIMENT_FILE}) in it")
+        else:
+            # e.g. a section directory caught by a shell glob: not an experiment
+            log(f"skipping {path}: it has no {EXPERIMENT_FILE} (use -r for a directory of experiments)")
+            found = []
+        exp_dirs += [d for d in found if d not in exp_dirs]
+    if not exp_dirs:
+        raise SystemExit(f"no experiment directories (with {EXPERIMENT_FILE}) to run")
 
     try:
         if args.list:
@@ -2367,15 +2538,31 @@ def main():
                if found else "No eagled socket was found on this host; is eagled running here?")
         )
     client = Daemon(args.socket)
-    pushed: set[Path] = set()
     for e in exps:
-        # Each directory's uploads are pushed once, before its first
-        # experiment, so the drivers find them when the daemons restart
-        if e.dir not in pushed:
-            push_uploads(client, e)
-            pushed.add(e.dir)
-        run_experiment(client, e, args.overwrite, args.trial)
-    log(f"done: {len(exps)} experiment(s)")
+        PROGRESS.add(e, 1 if args.trial else e.trials)
+    PROGRESS.started = time.monotonic()
+    log(f"{PROGRESS.total} trial(s) in {len(exps)} experiment(s); {PROGRESS.summary()}")
+    pushed: set[Path] = set()
+    written: list[Path] = []
+    finished = False
+    try:
+        for e in exps:
+            # Each directory's uploads are pushed once, before its first
+            # experiment, so the drivers find them when the daemons restart
+            if e.dir not in pushed:
+                push_uploads(client, e)
+                pushed.add(e.dir)
+            run_experiment(client, e, args.overwrite, args.trial, written)
+        finished = True
+        log(f"done: {len(exps)} experiment(s), {PROGRESS.done} trial(s) in "
+            f"{fmt_secs(time.monotonic() - PROGRESS.started)}")
+    finally:
+        # Even a stopped run's finished trials are worth keeping
+        if not args.no_zip:
+            try:
+                zip_results(written, args.zip_dir, partial=not finished)
+            except Exception as ex:  # never hide the run's own error
+                log(f"could not zip the results: {ex}")
 
 
 if __name__ == "__main__":

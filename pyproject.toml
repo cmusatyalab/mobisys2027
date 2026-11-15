@@ -9,11 +9,17 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "steeleagle-protocol",
+    "numpy",
+    "opencv-python",
+    "matplotlib",
 ]
 
 [project.scripts]
 experiment = "mobisys2027.main:main"
 netsim = "mobisys2027.netsim.netsim:main"
+label = "mobisys2027.label:main"
+lab = "mobisys2027.lab:main"
+analyze = "mobisys2027.analyze:main"
 
 [build-system]
 requires = ["uv_build>=0.12.18,<0.13.0"]

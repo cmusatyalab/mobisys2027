@@ -2,3 +2,5 @@
 **/runs/*
 **/trial_*
 *.jpeg
+archives/
+runs/

@@ -1,0 +1,35 @@
+2.1 search
+
+"2.1.1.1 YOLO early discard (person, conf 0.5), H.264"
+(no runs yet)
+
+"2.1.1.2 YOLO early discard recall curve: confidence 0.01, 0.1 ... 1.0, unshaped link"
+(no runs yet)
+
+"2.1.1.3 YOLO early discard + crop to the best person, WebP"
+(no runs yet)
+
+"2.1.1.4 YOLO early discard + crop + prioritized reintegration, WebP"
+(no runs yet)
+
+"2.1.1.5 YOLO early discard + crop + reintegration, verified by RF-DETR 2XL (conf 0.85)"
+(no runs yet)
+
+"2.1.2 change detection: PatchCore, reintegration, H.264"
+(no runs yet)
+
+"2.1.3.1 cliped, text prompt ""person"", no learning"
+(no runs yet)
+
+"2.1.3.2 cliped, text prompt ""person"", learning"
+(no runs yet)
+
+"2.1.3.3 cliped, image prompt mannequin.jpeg, no learning"
+(no runs yet)
+
+"2.1.3.4 cliped, image prompt mannequin.jpeg, learning"
+(no runs yet)
+
+"2.1.3.5 cliped, image prompt onager.webp, learning, MMLA"
+(no runs yet)
+

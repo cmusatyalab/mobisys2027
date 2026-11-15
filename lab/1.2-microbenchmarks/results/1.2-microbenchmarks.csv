@@ -1,0 +1,11 @@
+1.2 microbenchmarks
+
+"1.2.1 local: YOLO (QNN) on fermi, nothing sent"
+(no runs yet)
+
+"1.2.2 remote: H.264 to lambda2, RF-DETR 2XL there"
+(no runs yet)
+
+"1.2.3 fusion: YOLO (QNN) on fermi and RF-DETR 2XL on lambda2, fused on fermi"
+(no runs yet)
+

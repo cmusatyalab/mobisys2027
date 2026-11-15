@@ -20,9 +20,18 @@ sets up the environment on first use. The experiment directories are in `lab/`
 and `live/`:
 
 ```bash
-uv run experiment lab/yolo_ed          # one experiment directory
-uv run experiment -r lab               # every experiment directory in lab/
+uv run experiment lab/swiftmap                         # one experiment directory
+uv run experiment lab/2.1-search/2.1.1-yolo/2.1.1.1-yolo-ed lab/swiftmap   # several, in order
+uv run experiment -r lab                               # every experiment directory under lab/
+uv run experiment -r lab/2.1-search/2.1.1-yolo lab/1.2-microbenchmarks/1.2.1-local
+uv run experiment @batch.txt                           # the paths (and options) listed in batch.txt
 ```
+
+While it runs, the runner logs its progress before each trial (trials done
+of the total, time elapsed, and when the whole run should end), and on a
+terminal shows a live bar of the trial in progress. A trial is estimated as
+its duration and grace plus the average overhead (daemon restarts,
+collection) of the trials so far, one minute until one has been timed.
 
 To call `experiment` and `netsim` without `uv run`, activate the environment
 with `source .venv/bin/activate` after the first `uv sync`.
@@ -67,8 +76,15 @@ still used when that profile is left out.
 
 ### Running a batch of experiment directories
 
-`-r` runs every experiment in every subdirectory that contains an
-`experiment.toml`, in alphabetical order of directory:
+Give several experiment directories to run them all, in the order given. A
+file of paths, one per line, can be given as `@file`. A path without an
+`experiment.toml` is skipped, with a note in the log, so a shell glob such as
+`lab/2.1-search/*/*` can catch other folders.
+
+`-r` runs every experiment in every directory under each path that contains
+an `experiment.toml`, at any depth (not looking inside an experiment
+directory, nor in `videos/`, `media/` or `runs/`), in alphabetical order of
+path:
 
 ```bash
 uv run experiment -r path/to/experiments/
@@ -83,14 +99,16 @@ through.
 
 | Option            | Meaning                                                                     |
 |-------------------|-----------------------------------------------------------------------------|
-| `path`            | An experiment directory, or with `-r`, a directory of experiment directories |
-| `-r, --recursive` | Run every experiment directory inside `path`                                |
-| `-e, --experiment NAME` | Run only the experiment named `NAME` (repeat for several). Not with `-r` |
+| `path ...`        | Experiment directories, run in order; or with `-r`, directories holding them. `@file` reads paths from a file |
+| `-r, --recursive` | Run every experiment directory under each `path`, at any depth              |
+| `-e, --experiment NAME` | Run only the experiment named `NAME` (repeat for several). Not with `-r` or several paths |
 | `-l, --list`      | List the experiments in `path` (with `-r`, in each directory) and exit      |
 | `-p, --profile PROFILE` | Run only the netsim profile `PROFILE` (repeat, or separate with commas, for several) |
 | `--overwrite`     | Delete an earlier run's results for a profile and write in its place (see [Output](#output)) |
 | `-t, --trial N`   | Run only trial `N` of each profile, into its existing results folder (see [Output](#output)) |
 | `--update-packages` | Reinstall every package the daemons' configs use, once per daemon per run, to get a branch's latest code (see below) |
+| `--zip-dir DIR`   | When the run ends, zip the results folders it wrote into `DIR/<date>-<time>.zip` (default `archives/`). A run stopped early (Ctrl-C, an error) still zips what it saved, as `<date>-<time>-partial.zip` |
+| `--no-zip`        | Don't zip the results |
 | `--socket PATH`   | eagled's control socket (default: `$XDG_RUNTIME_DIR/steeleagle/eagled.sock`) |
 
 Before configuring a daemon, the runner installs any package its config uses
@@ -293,7 +311,7 @@ no_upload = true              # already on every daemon: not pushed
 
 | Key         | Meaning                                                                                     |
 |-------------|---------------------------------------------------------------------------------------------|
-| `file`      | File name, looked for first in the nearest `videos/` folder at or above the experiment directory, then in the experiment directory |
+| `file`      | File name, looked for first in the nearest `videos/` or `media/` folder at or above the experiment directory, then in the experiment directory |
 | `push_as`   | (optional) Name it is saved as on the daemons; defaults to its own name. Every upload is pushed at once, so two videos can't share one name; give each driver the name of its own video |
 | `no_upload` | (optional) `true`: don't push it; it's assumed to already be in every daemon's `STEELEAGLE_FILES` under its own name. The file then need not be here, and `push_as` can't be set |
 
@@ -719,6 +737,39 @@ daemon, without the `trial` and `daemon` columns.
 - `battery_status` is the battery's status at the end of the row, e.g. `Full`,
   `Charging` or `Discharging`.
 - `samples` is the number of readings the row averages.
+
+## The paper's experiments: `lab`, `label` and `analyze`
+
+`lab/` holds one directory per experiment in the plan (`1.2-microbenchmarks`,
+`2.1-search`, ...), generated by `uv run lab` from the spec in
+`src/mobisys2027/lab.py`. Edit the spec and rerun it rather than editing the
+TOML by hand. Every experiment runs on lambda2 with `root@fermi` as the child
+daemon. The fake drone plays videos and, for the image datasets (`sard`,
+`wisard`, `mmla`), directories of images from fermi's
+`~/.local/share/steeleagle/files/`. Make these with
+`scripts/prepare_datasets.py` on lambda2.
+
+The ground truth is in `labels/<source>.json`: one box per target per frame,
+normalized to the frame. The generator also takes the failpoints for the
+`malicious` profile from it.
+
+- `uv run label <video> [--fetch root@lambda2:/root/mobisys2027/videos/<video>.mp4]`
+  opens a labeling window. `1`/`2` choose mannequin/person, drag to draw a box,
+  and `a`/`d` step a frame (`j`/`l` and `J`/`L` step 30 and 300). `c`/`v` copy
+  boxes, `i` interpolates, `x` deletes, `u` undoes, and `s` saves (`q` saves and
+  quits). `--fetch` makes a small proxy of the video on the remote host first.
+- `scripts/autolabel.py` (on a GPU host) makes a first set of labels with
+  RF-DETR, a tracker and a VLM that tells mannequins from people.
+- `uv run analyze` scores the runs under `lab/`. It writes one CSV per top-level
+  section to `lab/<section>/results/` (subsections spaced out inside it) and
+  the figures to `lab/<section>/results/figs/`, each as a PDF and a pgfplots
+  `.tex` file. The scores are throughput, end-to-end latency, power, bytes,
+  UoT, the fraction of a 1 Mbps stream, and frame-level precision and recall.
+  The 1.1 figures are drawn from `lab/1.1-quality/results/1.1-quality.csv`,
+  the sheet's numbers, with columns `model`, `axis` (`qp` or `resolution`),
+  `value` and `map`.
+- Regenerating with `uv run lab` replaces an experiment directory's TOML
+  files but keeps its `runs/` and `results/`.
 
 ## Trying it without the hardware
 
