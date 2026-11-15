@@ -2,49 +2,49 @@
 #                             -> reduce (detection-crop: best person) -> jpeg_encoder ==network==> jpeg_decoder (lambda2)
 
 [[producers]]
-name = "rgb"
+name = "vehicle.rgb"
 
 [[engines]]
-name = "yolo"
+name = "local.yolo"
 location = "local"
 
 [[engines]]
-name = "detection_log"
+name = "local.detection_log"
 location = "local"
 
 [[engines]]
-name = "reduce"
+name = "local.reduce"
 location = "local"
 
 [[engines]]
-name = "jpeg_encoder"
+name = "local.jpeg_encoder"
 location = "local"
 
 [[engines]]
-name = "jpeg_decoder"
+name = "remote.jpeg_decoder"
 location = "remote"
 
 [[edges]]
-from = "rgb"
-to = "yolo"
+from = "vehicle.rgb"
+to = "local.yolo"
 timeout = "2s"
 
 [[edges]]
-from = "yolo"
-to = "detection_log"
+from = "local.yolo"
+to = "local.detection_log"
 timeout = "2s"
 
 [[edges]]
-from = "yolo"
-to = "reduce"
+from = "local.yolo"
+to = "local.reduce"
 timeout = "2s"
 
 [[edges]]
-from = "reduce"
-to = "jpeg_encoder"
+from = "local.reduce"
+to = "local.jpeg_encoder"
 timeout = "2s"
 
 [[edges]]
-from = "jpeg_encoder"
-to = "jpeg_decoder"
+from = "local.jpeg_encoder"
+to = "remote.jpeg_decoder"
 timeout = "5s"

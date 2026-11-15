@@ -1,49 +1,49 @@
 # rgb -> rescale (720p) -> cliped -> webp_encoder ==network==> webp_decoder -> verifier (lambda2)
 
 [[producers]]
-name = "rgb"
+name = "vehicle.rgb"
 
 [[engines]]
-name = "rescale"
+name = "local.rescale"
 location = "local"
 
 [[engines]]
-name = "cliped"
+name = "local.cliped"
 location = "local"
 
 [[engines]]
-name = "webp_encoder"
+name = "local.webp_encoder"
 location = "local"
 
 [[engines]]
-name = "webp_decoder"
+name = "remote.webp_decoder"
 location = "remote"
 
 [[engines]]
-name = "verifier"
+name = "remote.verifier"
 location = "remote"
 
 [[edges]]
-from = "rgb"
-to = "rescale"
+from = "vehicle.rgb"
+to = "local.rescale"
 timeout = "2s"
 
 [[edges]]
-from = "rescale"
-to = "cliped"
+from = "local.rescale"
+to = "local.cliped"
 timeout = "2s"
 
 [[edges]]
-from = "cliped"
-to = "webp_encoder"
+from = "local.cliped"
+to = "local.webp_encoder"
 timeout = "2s"
 
 [[edges]]
-from = "webp_encoder"
-to = "webp_decoder"
+from = "local.webp_encoder"
+to = "remote.webp_decoder"
 timeout = "5s"
 
 [[edges]]
-from = "webp_decoder"
-to = "verifier"
+from = "remote.webp_decoder"
+to = "remote.verifier"
 timeout = "5s"

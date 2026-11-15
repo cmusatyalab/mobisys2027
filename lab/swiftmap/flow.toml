@@ -1,31 +1,31 @@
 # rgb -> jpeg_encoder -> reachback (fermi) ==network==> swiftmap (lambda2)
 
 [[producers]]
-name = "rgb"
+name = "vehicle.rgb"
 
 [[engines]]
-name = "jpeg_encoder"
+name = "local.jpeg_encoder"
 location = "local"
 
 [[engines]]
-name = "reachback"
+name = "local.reachback"
 location = "local"
 
 [[engines]]
-name = "swiftmap"
+name = "remote.swiftmap"
 location = "remote"
 
 [[edges]]
-from = "rgb"
-to = "jpeg_encoder"
+from = "vehicle.rgb"
+to = "local.jpeg_encoder"
 timeout = "2s"
 
 [[edges]]
-from = "jpeg_encoder"
-to = "reachback"
+from = "local.jpeg_encoder"
+to = "local.reachback"
 timeout = "2s"
 
 [[edges]]
-from = "reachback"
-to = "swiftmap"
+from = "local.reachback"
+to = "remote.swiftmap"
 timeout = "5s"

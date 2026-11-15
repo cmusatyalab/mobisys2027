@@ -20,4 +20,4 @@ requires = ["uv_build>=0.12.18,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-steeleagle-protocol = { git = "https://github.com/cmusatyalab/steeleagle", subdirectory = "api/python", tag = "api/python/v0.3.7" }
+steeleagle-protocol = { git = "https://github.com/cmusatyalab/steeleagle", subdirectory = "api/python", tag = "api/python/v0.3.8" }

@@ -253,18 +253,22 @@ header of an MP4/MOV file; if neither works, the experiment is rejected before
 it starts and you need to set `duration`. Setting `duration` (including `0`)
 overrides the video's length.
 
-A flow can name its engines by their bare service names (`rescale`,
-`verifier`), as in the daemon configs. uriel only finds an engine by the name
-its daemon serves it under, `<daemon ip>.<name>` (e.g.
-`100.101.84.40.rescale`), so before each trial the runner qualifies each bare
-name, and the edges with it, from the orchestrator's `ListServices`:
+A flow names its nodes relative to the vehicle, which qualifies the names
+itself, so the runner sends the flow as written:
 
-- a `local` engine is the one of that name on the vehicle's daemon;
-- a `remote` engine is the only one of that name on any other daemon.
+| Node | Name in the flow |
+|---|---|
+| A stream of the vehicle (its telemetry or a camera) | `vehicle.rgb`, `vehicle.telemetry` |
+| An engine on the vehicle's daemon | `local.rescale`, with `location = "local"` |
+| An engine on the orchestrator | `remote.verifier`, with `location = "remote"` |
+| A producer of an engine on the vehicle's daemon | `local.<engine>.<producer>` |
 
-A bare name with no such engine, or (remote) more than one, stops the trial
-before it starts, naming the engines it found. Names that are already
-qualified are sent as they are. The runner logs what it mapped each name to.
+Producers of remote engines can't be used. When the experiments load, the
+runner checks that every name has one of these prefixes, and that each
+engine's prefix matches its `location`, so a flow with old, bare names
+(`rgb`, `rescale`) stops before any daemon is restarted. The vehicle checks the
+rest when the flow is set: that the cameras exist, and that each engine runs
+on the daemon its prefix names.
 
 ### `[[uploads]]`
 
@@ -554,8 +558,8 @@ its `trials`:
 4. **Prepare.** For a mission: upload it (unless `no_upload` is set) and load
    it on the vehicle.
 5. **Wait for you.** If `auto = false`: press ENTER to start the trial.
-6. **Start.** `StartMission`, or `SetDataflow` with the video's flow (its bare
-   engine names qualified; see [`[[experiments]]`](#experiments)), then start netsim
+6. **Start.** `StartMission`, or `SetDataflow` with the video's flow, as
+   written (see [`[[experiments]]`](#experiments)), then start netsim
    as soon as the vehicle answers (except under `none` and `ambient`), and the
    power measurement on each remote's host (see
    [`[experiments.power]`](#experimentspower)).

@@ -596,8 +596,13 @@ def parse_experiment(
                 d = video_length(video)
             except ValueError as e:
                 raise ValueError(f"{where}: {e}; set video.duration instead") from None
+        flow = exp_file("video.flow", sect["flow"])
+        try:
+            check_flow(flow)
+        except ValueError as e:
+            raise ValueError(f"{where}: {e}") from None
         phases.append(Phase(
-            "video", exp_file("video.flow", sect["flow"]), flag(sect, "video.auto"), d,
+            "video", flow, flag(sect, "video.auto"), d,
             video=video, no_upload=no_upload, duration_from_video=from_video,
             grace=grace("video", sect),
         ))
@@ -1851,72 +1856,43 @@ def run_hook(
         log(f"warning: {hook} hook exited {r.returncode}")
 
 
-def toml_value(v) -> str:
-    if isinstance(v, bool):
-        return "true" if v else "false"
-    if isinstance(v, (int, float)):
-        return repr(v)
-    if isinstance(v, str):
-        return json.dumps(v)  # a JSON string is a valid TOML basic string
-    raise ValueError(f"can't write {v!r} into a flow")
+# A flow names its nodes relative to the vehicle, which qualifies them itself:
+# vehicle.<stream> for the vehicle's telemetry or a camera,
+# local.<engine>.<producer> for a producer of an engine on the vehicle's
+# daemon, and local.<engine> or remote.<engine> for an engine on the vehicle's
+# daemon or on the orchestrator. Producers of remote engines can't be used.
+VEHICLE_PREFIX, LOCAL_PREFIX, REMOTE_PREFIX = "vehicle.", "local.", "remote."
 
 
-def flow_toml(flow: dict) -> bytes:
-    """A flow (its arrays of tables of scalars) as TOML."""
-    lines = []
-    for key, tables in flow.items():
-        if not isinstance(tables, list) or not all(isinstance(t, dict) for t in tables):
-            raise ValueError(f"flow key {key!r} isn't an array of tables")
-        for t in tables:
-            lines.append(f"[[{key}]]")
-            lines += [f"{k} = {toml_value(v)}" for k, v in t.items()]
-            lines.append("")
-    return "\n".join(lines).encode()
-
-
-def qualify_flow(client: Daemon, flow_bytes: bytes, vehicle: str) -> bytes:
-    """The flow with each bare engine name replaced by the qualified name of
-    the engine service that runs it, as uriel needs: for a local engine, the
-    one on the vehicle's daemon (<vehicle's ip>.<name>), and for a remote
-    engine, the only one of that name on another daemon. Edges are renamed to
-    match. A name that is already a service's is kept, as is any name with a
-    dot in it; a bare name that matches no engine, or more than one, is an
-    error."""
-    flow = tomllib.loads(flow_bytes.decode())
-    engines = [
-        s.name for s in client.list_services().services
-        if s.category == daemon_pb2.SERVICE_CATEGORY_ENGINE
-    ]
-    vehicle_ip = vehicle.rsplit(".", 1)[0]
-    names: dict[str, str] = {}
-    for e in flow.get("engines", []):
-        name, location = e.get("name", ""), e.get("location", "local")
-        if name in engines or "." in name:
-            continue
-        if location == "local":
-            matches = [n for n in engines if n == f"{vehicle_ip}.{name}"]
-            where = f"on the vehicle's daemon ({vehicle_ip})"
-        else:
-            matches = [n for n in engines if n.endswith("." + name) and not n.startswith(vehicle_ip + ".")]
-            where = "on a daemon other than the vehicle's"
-        if len(matches) != 1:
-            found = ", ".join(n for n in engines if n.endswith("." + name)) or "none"
-            raise RuntimeError(
-                f"{location} engine {name!r} of the flow: "
-                + ("no engine service of that name runs " if not matches else f"{len(matches)} engine services of that name run ")
-                + f"{where} (engines named {name!r}: {found})"
+def check_flow(path: Path) -> None:
+    """Checks that the flow at path names its nodes as the vehicle expects,
+    so an old flow with bare names fails before any daemon is restarted. The
+    vehicle checks the rest (that the cameras and engines exist) when the
+    flow is set."""
+    try:
+        flow = tomllib.loads(path.read_text())
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
+        raise ValueError(f"flow {path}: {e}") from None
+    for p in flow.get("producers", []):
+        name = p.get("name", "")
+        if name.startswith(REMOTE_PREFIX):
+            raise ValueError(
+                f"flow {path}: producer {name!r} is of a remote engine; only the vehicle's "
+                f"streams and local engines' producers can be used"
             )
-        names[name] = matches[0]
-    if not names:
-        return flow_bytes
+        if not name.startswith((VEHICLE_PREFIX, LOCAL_PREFIX)):
+            raise ValueError(
+                f"flow {path}: producer {name!r} must start with {VEHICLE_PREFIX!r} (a stream "
+                f"of the vehicle) or {LOCAL_PREFIX!r} (a local engine's producer)"
+            )
     for e in flow.get("engines", []):
-        e["name"] = names.get(e["name"], e["name"])
-    for edge in flow.get("edges", []):
-        for end in ("from", "to"):
-            if end in edge:
-                edge[end] = names.get(edge[end], edge[end])
-    log("flow engines: " + ", ".join(f"{k} -> {v}" for k, v in names.items()))
-    return flow_toml(flow)
+        name, location = e.get("name", ""), e.get("location", "")
+        if not name.startswith((LOCAL_PREFIX, REMOTE_PREFIX)):
+            raise ValueError(
+                f"flow {path}: engine {name!r} must start with {LOCAL_PREFIX!r} or {REMOTE_PREFIX!r}"
+            )
+        if name.split(".", 1)[0] != location:
+            raise ValueError(f"flow {path}: engine {name!r} has location {location!r}")
 
 
 def new_run_dir(exp: Experiment, profile: str, overwrite: bool = False) -> Path:
@@ -2160,7 +2136,8 @@ def run_trial(
             log(f"uploading and loading {phase.file.name} on {vehicle}")
             client.upload_mission(phase.file, vehicle)
         client.load_mission(phase.file.name, vehicle)
-    flow = qualify_flow(client, phase.file.read_bytes(), vehicle) if phase.kind == "video" else b""
+    # The flow is sent as written: the vehicle qualifies its names
+    flow = phase.file.read_bytes() if phase.kind == "video" else b""
     if not phase.auto:
         input(f"[{exp.name} {profile} {trial}/{exp.trials}] Press ENTER to start the {phase.kind}... ")
 
