@@ -37,7 +37,9 @@ standard deviation in the _sd columns):
 - effective_recall (and verified_effective_recall): recall over only the
   frames the pipeline processed. The fake drone sends a frame only when the
   pipeline has a free input (its frame log's seq); a frame sent while it was
-  busy is dropped there, unseen. The gap between recall and
+  busy is dropped there, unseen. cliped and PatchCore log each frame they
+  score (mb/scored.csv), and only those count as processed: a frame they
+  never got to, queued behind a slow one, is unseen too. The gap between recall and
   effective_recall is the targets the pipeline never saw; what
   effective_recall misses, it saw and lost (filtered out, or lost on the way);
 - processed_frac: the share of the source's frames the pipeline took in.
@@ -142,6 +144,15 @@ class Trial:
             if r.get("seq"):
                 self.by_seq[int(r["seq"])] = (src, ts)
                 self.processed.add(src)
+        # A filter that logs each frame it scores (cliped: timestamp_ns,
+        # patchcore: seq) processed only those: the rest were dropped unseen
+        # while it was busy, though the drone sent them
+        scored = read_csv(find(path, "scored.csv") or Path("-"))
+        if scored:
+            self.processed = {
+                src[0] for r in scored
+                if (src := (self.by_ts.get(int(r["timestamp_ns"])) if r.get("timestamp_ns")
+                            else self.by_seq.get(int(r["seq"])))) is not None}
         # What was cut and sent: timestamp (and tile) -> box; patchcore: timestamp -> seq
         self.sent_box: dict[int, list[tuple]] = {}
         self.sent_seq: dict[int, int] = {}

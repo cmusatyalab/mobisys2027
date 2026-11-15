@@ -22,7 +22,7 @@ the experiments measure with:
 - the runner measures fermi's power and netsim's bytes.
 
 `uv run analyze` turns these into results/. The malicious profile's
-failpoints, and the 10% grace, come from labels/<source>.json, made with
+failpoints come from labels/<source>.json, made with
 `uv run label`; until a source is labeled, the failpoints found earlier from
 cliped's TP/TN labels are used.
 """
@@ -41,7 +41,7 @@ BRANCH = "v4_backend_rework"
 FILES = "/root/.local/share/steeleagle/files"
 LOG_DIR = "mb"  # in each daemon's files directory: the logs collected after each trial
 
-# Every profile but these is run on the plain experiment; these get the 10%
+# Every profile but these is run on the plain experiment; these get GRACE_S of
 # grace and black padding after the video, as the separate <source>_lossy experiment
 LOSSY = ("intermittent", "malicious")
 DEFAULT_PROFILES = ("normal", "limited", "degraded", "intermittent")
@@ -49,6 +49,14 @@ ALL_PROFILES = (*DEFAULT_PROFILES, "malicious")
 IMAGE_FPS = 10.0
 WARNINGS: set[str] = set()  # printed by `uv run lab`
 TRIALS = 3
+# Grace after the video of a lossy (intermittent, malicious) experiment, for
+# reintegration to finish
+GRACE_S = 60
+# The send queue of every reintegrating engine (detection-crop, cliped,
+# patchcore-score): room to wait out an outage, and a resend timer above the
+# seconds a crop takes over intermittent's 0-100 Kbps (at 5 s, nearly every
+# crop was resent while still in flight)
+SEND_QUEUE = {"max_queue": 512, "resend_after_ms": 30000}
 
 
 def pkg(path: str) -> str:
@@ -96,8 +104,9 @@ SOURCES = {
         Source("field", "field.mp4", "video"),
         Source("wisard", "wisard", "images", 264, fps=IMAGE_FPS, target=L.PERSON),
         Source("sard", "sard", "images", 1144, fps=IMAGE_FPS, target=L.PERSON),
-        # The 7 onager videos of MMLA's session_3, back to back (see scripts/prepare_datasets.sh)
-        Source("mmla", "mmla", "images", 4053, fps=IMAGE_FPS, target="onager"),
+        # MMLA: four onager clips spliced into zebra and giraffe footage, 5% onager
+        # (scripts/prepare_datasets.py's MMLA_CLIPS)
+        Source("mmla", "mmla", "images", 4000, fps=IMAGE_FPS, target="onager"),
     ]
 }
 VIDEOS3 = ("parkinglot", "traintrack", "street")
@@ -247,6 +256,7 @@ def rfdetr(confidence=None, person=False, crops=False, early_discard=False, name
 def crop(verifier: str) -> Service:
     return Service("reduce", "detection-crop", "engines/detection-crop", {
         "detector": "yolo", "class": "person", "verifier": verifier, "log_sent": f"{LOG_DIR}/sent.csv",
+        **SEND_QUEUE,
     }, comment=f"Crops each frame to yolo's best person; queued until {verifier} has the crop; logs each crop")
 
 
@@ -264,7 +274,7 @@ class Exp:
     profiles: tuple
     fermi: list[Service]
     flow: str = "flow.toml"
-    lossy: bool = False  # grace 10% and black padding
+    lossy: bool = False  # GRACE_S of grace and black padding
     trials: int = TRIALS
     # The labeled classes that count as found (true positives) when scoring
     targets: tuple = ()
@@ -279,10 +289,7 @@ class Exp:
             frames = src.labels.frames if src.labels else src.frames
             lines.append(f"duration = {round(d, 2)}  # {frames} frames at {src.fps:g} fps")
         if self.lossy:
-            if d:
-                lines.append(f"grace = {round(0.1 * d, 1)}  # 10% of the run, for reintegration to finish")
-            else:
-                lines.append("grace = 0  # TODO: label the source (uv run label) and rerun `uv run lab` for 10%")
+            lines.append(f"grace = {GRACE_S}  # for reintegration to finish")
         if self.targets:
             lines.insert(1, f"# scored: a {' or '.join(self.targets)} counts as found")
         lines += ["[experiments.netsim]", f"profiles = {toml_value(list(self.profiles))}",
@@ -459,17 +466,13 @@ def yolo() -> list[Dir]:
         {"flow.toml": flow_toml(reint_edges, "rgb -> yolo -> reduce -> webp_encoder ==network==> rx_metrics -> webp_decoder; "
                                              "reduce.reintegration -> webp_encoder")},
         [metrics("rx_metrics", True), WEBP_DECODER],
-        per_source(SEARCH5, LOSSY, lambda s, pad: [drone(s, pad), qnn(0.5), crop("webp_decoder"), webp_encoder()]))
+        per_source(SEARCH5, ALL_PROFILES, lambda s, pad: [drone(s, pad), qnn(0.5), crop("webp_decoder"), webp_encoder()]))
 
-    verified = Dir(
-        f"{base}/2.1.1.5-yolo-verified", "2.1.1.5 YOLO early discard + crop + reintegration, verified by RF-DETR 2XL (conf 0.85)",
-        {"flow.toml": flow_toml([*reint_edges, ("remote.webp_decoder", "remote.verifier"),
-                                 ("remote.verifier", "remote.sink_metrics")],
-                                "... ==network==> rx_metrics -> webp_decoder -> verifier (RF-DETR) -> sink_metrics")},
-        [metrics("rx_metrics", True), WEBP_DECODER,
-         rfdetr(0.85, person=True, crops=True, early_discard=True, name="verifier"), metrics("sink_metrics", False)],
-        per_source(SEARCH5, ALL_PROFILES, lambda s, pad: [drone(s, pad), qnn(0.5), crop("verifier"), webp_encoder()]))
-    return [ed, curve, crop_dir, reint, verified]
+    # 2.1.1.5 (the same, verified by RF-DETR 2XL) was folded into 2.1.1.4,
+    # which took over its profiles: YOLO's crops at conf 0.5 already reach ~1.0
+    # precision, so the verifier only lost recall, at every threshold from 0.1
+    # to 0.85 (replayed on the quick run's crops). Recall is what leaves YOLO.
+    return [ed, curve, crop_dir, reint]
 
 
 def change_detection() -> list[Dir]:
@@ -481,8 +484,10 @@ def change_detection() -> list[Dir]:
             Service("embed", "embed", "engines/patchcore-embed", comment="PatchCore's backbone on the HTP"),
             Service("score", "score", "engines/patchcore-score", {
                 "threshold_meta": "models/gravel_meta.pt", "faiss_index": "models/gravel.faiss",
-                "verifier": "h264_decoder", "log_sent": f"{LOG_DIR}/sent.csv"},
-                comment="Forwards anomalous frames, queued until h264_decoder has them; logs each one"),
+                "verifier": "h264_decoder", "log_sent": f"{LOG_DIR}/sent.csv",
+                "log_scored": f"{LOG_DIR}/scored.csv", **SEND_QUEUE},
+                comment="Forwards anomalous frames, queued until h264_decoder has them; logs each frame "
+                        "scored and each one forwarded"),
             h264_encoder(),
         ]
 
@@ -516,10 +521,10 @@ def cliped() -> list[Dir]:
                 Service("rescale", "rescale", "engines/rescale", {"resolution": "720p"},
                         comment="cliped's tiling is tuned for 720p"),
                 Service("cliped", "cliped", "engines/cliped", {
-                    **prompt, "verifier": "verifier", "learn": learn, "resend_after_ms": 15000,
-                    "log_sent": f"{LOG_DIR}/sent.csv"},
-                    comment=f"CLIP edge filter, learning {'on' if learn else 'off'}; resend_after_ms is above "
-                            f"the 5 s edge timeout plus the VLM's time per tile; logs each tile queued"),
+                    **prompt, "verifier": "verifier", "learn": learn, "log_sent": f"{LOG_DIR}/sent.csv",
+                    "log_scored": f"{LOG_DIR}/scored.csv", **SEND_QUEUE},
+                    comment=f"CLIP edge filter, learning {'on' if learn else 'off'}; logs each frame scored "
+                            "and each tile queued"),
                 webp_encoder(),
             ]
 

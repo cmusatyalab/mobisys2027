@@ -16,8 +16,12 @@ fake drone plays it from (`images = "<name>"`).
 
 - sard: a Roboflow export, images/ and labels/ (class 0: person);
 - wisard: images and labels side by side (class 0: person);
-- mmla: the onager videos of MMLA The Wilds (imageomics/mmla_wilds on
-  Hugging Face, session_3, class 2: onager), downloaded here, back to back.
+- mmla: clips of MMLA The Wilds (imageomics/mmla_wilds on Hugging Face),
+  downloaded here, spliced as MMLA_CLIPS: four 50-frame onager clips
+  (class 2, the target) spread through zebra and giraffe footage, so 5% of
+  the frames hold an onager and the rest are look-alike negatives. Each
+  image is prefixed with its place in the splice, so the fake drone plays
+  them in that order.
 """
 
 from __future__ import annotations
@@ -32,13 +36,25 @@ import cv2
 from mobisys2027 import labels as L
 
 MMLA_REPO = "imageomics/mmla_wilds"
-MMLA_ONAGER_VIDEOS = ["P0070007", "P0080008", "P0090009", "P0100010", "P0110011", "P0120012", "P0160016"]
+# (video, first frame, frames or None for the rest), played in this order:
+# 200 onager frames (5%) among 3800 of zebra and giraffe
+MMLA_CLIPS = [
+    ("session_2/P0140018", 0, 1000),  # giraffe
+    ("session_3/P0070007", 260, 50),  # onager
+    ("session_4/P0070010", 0, None),  # zebra (506)
+    ("session_3/P0090009", 275, 50),  # onager
+    ("session_2/P0140018", 1000, 1000),  # giraffe
+    ("session_3/P0110011", 262, 50),  # onager
+    ("session_2/P0150019", 0, None),  # giraffe (327)
+    ("session_3/P0160016", 275, 50),  # onager
+    ("session_2/P0140018", 2000, 967),  # giraffe
+]
 MMLA_CLASSES = {0: "zebra", 1: "giraffe", 2: "onager", 3: "dog"}
 
 
-def flatten(images: list[Path], out: Path, max_width: int) -> None:
+def flatten(images: list[Path], out: Path, max_width: int, numbered: bool = False) -> None:
     """Copies `images`, scaled down to `max_width`, with their YOLO labels,
-    into `out`."""
+    into `out`; `numbered`, each prefixed with its index, to keep their order."""
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -50,10 +66,11 @@ def flatten(images: list[Path], out: Path, max_width: int) -> None:
         h, w = img.shape[:2]
         if w > max_width:
             img = cv2.resize(img, (max_width, round(h * max_width / w / 2) * 2), interpolation=cv2.INTER_AREA)
-        cv2.imwrite(str(out / f"{image.stem}.jpg"), img, [cv2.IMWRITE_JPEG_QUALITY, 92])
+        stem = f"{k:05d}_{image.stem}" if numbered else image.stem
+        cv2.imwrite(str(out / f"{stem}.jpg"), img, [cv2.IMWRITE_JPEG_QUALITY, 92])
         label = L.yolo_label_file(image)
         if label is not None:
-            shutil.copy(label, out / f"{image.stem}.txt")
+            shutil.copy(label, out / f"{stem}.txt")
         if k % 500 == 0:
             print(f"  {k}/{len(images)}")
 
@@ -63,11 +80,15 @@ def download_mmla(cache: Path) -> list[Path]:
 
     root = Path(snapshot_download(
         MMLA_REPO, repo_type="dataset", local_dir=cache,
-        allow_patterns=[f"session_3/{v}/*" for v in MMLA_ONAGER_VIDEOS] + ["classes.txt"],
+        allow_patterns=[f"{v}/*" for v in dict.fromkeys(v for v, _, _ in MMLA_CLIPS)] + ["classes.txt"],
     ))
     images = []
-    for v in MMLA_ONAGER_VIDEOS:
-        images += L.list_images(root / "session_3" / v)
+    for v, first, n in MMLA_CLIPS:
+        frames = L.list_images(root / v)
+        clip = frames[first:None if n is None else first + n]
+        if n is not None and len(clip) != n:
+            raise SystemExit(f"{v} has {len(frames)} frames, not the {first + n} MMLA_CLIPS needs")
+        images += clip
     return images
 
 
@@ -94,7 +115,7 @@ def main():
     for name, images, target, classes in jobs:
         out = args.out / name
         print(f"{name}: {len(images)} images -> {out}")
-        flatten(images, out, args.max_width)
+        flatten(images, out, args.max_width, numbered=name == "mmla")
         labels = L.import_yolo(out, name=name, target=target, class_names=classes, fps=args.fps)
         path = labels.save()
         print(f"{name}: {path} ({labels.frames} frames, {len(labels.target_frames())} with a {target})")

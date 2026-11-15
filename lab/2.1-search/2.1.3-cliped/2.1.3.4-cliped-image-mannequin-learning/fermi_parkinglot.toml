@@ -31,7 +31,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/rescale@v4
 [services.plugin.args]
 resolution = "720p"
 
-# CLIP edge filter, learning on; resend_after_ms is above the 5 s edge timeout plus the VLM's time per tile; logs each tile queued
+# CLIP edge filter, learning on; logs each frame scored and each tile queued
 [[services]]
 name = "cliped"
 type = "engine"
@@ -42,8 +42,10 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_
 image = "mannequin.jpeg"
 verifier = "verifier"
 learn = true
-resend_after_ms = 15000
 log_sent = "mb/sent.csv"
+log_scored = "mb/scored.csv"
+max_queue = 512
+resend_after_ms = 30000
 
 # WebP at quality 65
 [[services]]

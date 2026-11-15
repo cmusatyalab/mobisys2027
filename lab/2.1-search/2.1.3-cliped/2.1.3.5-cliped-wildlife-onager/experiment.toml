@@ -26,7 +26,7 @@ video = "mmla"
 flow = "flow.toml"
 auto = true
 duration = 405.3  # 4053 frames at 10 fps
-grace = 40.5  # 10% of the run, for reintegration to finish
+grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent"]
 interface = "tailscale0"

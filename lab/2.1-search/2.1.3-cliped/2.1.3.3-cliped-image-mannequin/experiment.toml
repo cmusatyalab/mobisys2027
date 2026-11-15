@@ -24,7 +24,7 @@ vehicle = "drone"
 video = "parkinglot.mp4"
 flow = "flow.toml"
 auto = true
-grace = 8.6  # 10% of the run, for reintegration to finish
+grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]
 interface = "tailscale0"
@@ -54,7 +54,7 @@ vehicle = "drone"
 video = "traintrack.mp4"
 flow = "flow.toml"
 auto = true
-grace = 9.5  # 10% of the run, for reintegration to finish
+grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]
 interface = "tailscale0"
@@ -84,7 +84,7 @@ vehicle = "drone"
 video = "street.mp4"
 flow = "flow.toml"
 auto = true
-grace = 10.2  # 10% of the run, for reintegration to finish
+grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]
 interface = "tailscale0"

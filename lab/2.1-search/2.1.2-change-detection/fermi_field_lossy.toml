@@ -40,7 +40,7 @@ type = "engine"
 plugin = "embed"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/patchcore-embed@v4_backend_rework"
 
-# Forwards anomalous frames, queued until h264_decoder has them; logs each one
+# Forwards anomalous frames, queued until h264_decoder has them; logs each frame scored and each one forwarded
 [[services]]
 name = "score"
 type = "engine"
@@ -52,6 +52,9 @@ threshold_meta = "models/gravel_meta.pt"
 faiss_index = "models/gravel.faiss"
 verifier = "h264_decoder"
 log_sent = "mb/sent.csv"
+log_scored = "mb/scored.csv"
+max_queue = 512
+resend_after_ms = 30000
 
 # The Tachyon's hardware H.264 encoder, as in live/
 [[services]]
