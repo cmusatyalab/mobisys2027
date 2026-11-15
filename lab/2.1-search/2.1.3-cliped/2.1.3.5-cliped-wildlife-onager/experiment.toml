@@ -36,7 +36,7 @@ trials = 3
 # Pushed to every daemon once, before the first experiment
 [[uploads]]
 file = "onager.webp"
-[[uploads]] # a directory of images already in fermi's files directory (see lab/README.md)
+[[uploads]] # a directory of images already in fermi's files directory (scripts/prepare_datasets.py)
 file = "mmla"
 no_upload = true
 

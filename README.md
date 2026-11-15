@@ -765,6 +765,10 @@ normalized to the frame. The generator also takes the failpoints for the
   the figures to `lab/<section>/results/figs/`, each as a PDF and a pgfplots
   `.tex` file. The scores are throughput, end-to-end latency, power, bytes,
   UoT, the fraction of a 1 Mbps stream, and frame-level precision and recall.
+  Effective recall is the recall over only the frames the pipeline processed
+  (the fake drone drops a frame when the pipeline has no free input, logged
+  with an empty `seq` in its frame log), and `processed_frac` is the share of
+  frames it processed.
   The 1.1 figures are drawn from `lab/1.1-quality/results/1.1-quality.csv`,
   the sheet's numbers, with columns `model`, `axis` (`qp` or `resolution`),
   `value` and `map`.

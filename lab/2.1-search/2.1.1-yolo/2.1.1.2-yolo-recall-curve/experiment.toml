@@ -804,10 +804,10 @@ no_upload = true
 [[uploads]] # already in fermi's files directory (videos/ has a copy for its length)
 file = "street.mp4"
 no_upload = true
-[[uploads]] # a directory of images already in fermi's files directory (see lab/README.md)
+[[uploads]] # a directory of images already in fermi's files directory (scripts/prepare_datasets.py)
 file = "wisard"
 no_upload = true
-[[uploads]] # a directory of images already in fermi's files directory (see lab/README.md)
+[[uploads]] # a directory of images already in fermi's files directory (scripts/prepare_datasets.py)
 file = "sard"
 no_upload = true
 

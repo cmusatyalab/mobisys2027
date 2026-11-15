@@ -33,7 +33,14 @@ standard deviation in the _sd columns):
   (lab.py's targets: anyone for YOLO and "person", only the mannequin or the
   onager for an image prompt);
 - verified_precision and verified_recall: the same for what the verifier on
-  lambda2 passed on (sink_metrics), when there is one.
+  lambda2 passed on (sink_metrics), when there is one;
+- effective_recall (and verified_effective_recall): recall over only the
+  frames the pipeline processed. The fake drone sends a frame only when the
+  pipeline has a free input (its frame log's seq); a frame sent while it was
+  busy is dropped there, unseen. The gap between recall and
+  effective_recall is the targets the pipeline never saw; what
+  effective_recall misses, it saw and lost (filtered out, or lost on the way);
+- processed_frac: the share of the source's frames the pipeline took in.
 """
 
 from __future__ import annotations
@@ -122,13 +129,18 @@ class Trial:
         # capture timestamp -> (source frame, capture ns); seq -> the same
         self.by_ts: dict[int, tuple[int, int]] = {}
         self.by_seq: dict[int, tuple[int, int]] = {}
+        # Source frames the pipeline took in (sent with a seq), and all played
+        self.processed: set[int] = set()
+        self.played: set[int] = set()
         for r in frames:
             if r.get("source") in ("pad", None, ""):
                 continue
             src, ts = int(r["source"]), int(r["timestamp_ns"])
             self.by_ts[ts] = (src, ts)
+            self.played.add(src)
             if r.get("seq"):
                 self.by_seq[int(r["seq"])] = (src, ts)
+                self.processed.add(src)
         # What was cut and sent: timestamp (and tile) -> box; patchcore: timestamp -> seq
         self.sent_box: dict[int, list[tuple]] = {}
         self.sent_seq: dict[int, int] = {}
@@ -173,8 +185,10 @@ def holds_target(item: Item, labels: L.Labels, targets) -> bool:
     return any(L.overlap(item.box, b[1:]) >= OVERLAP for b in boxes)
 
 
-def score(items: list[Item], labels: L.Labels | None, targets) -> dict:
-    """precision, recall and uot of `items`, each distinct one once."""
+def score(items: list[Item], labels: L.Labels | None, targets, processed: set[int] | None = None) -> dict:
+    """precision, recall and uot of `items`, each distinct one once; with
+    `processed` (the source frames the pipeline took in), effective_recall:
+    the recall over only those."""
     if labels is None or not targets:
         return {}
     seen, uniq = set(), []
@@ -187,7 +201,9 @@ def score(items: list[Item], labels: L.Labels | None, targets) -> dict:
     target_frames = {f for f in labels.boxes if any(b[0] in targets for b in labels.boxes[f])}
     found = {it.frame for it, hit in zip(uniq, hits) if hit}
     total = sum(it.bytes for it in uniq)
+    seen_targets = target_frames & processed if processed else set()
     return {
+        "effective_recall": len(found & seen_targets) / len(seen_targets) if seen_targets else math.nan,
         "precision": sum(hits) / len(uniq) if uniq else math.nan,
         "recall": len(found & target_frames) / len(target_frames) if target_frames else math.nan,
         "uot": sum(it.bytes for it, hit in zip(uniq, hits) if hit) / total if total else math.nan,
@@ -220,11 +236,14 @@ def trial_metrics(trial: Trial, labels: L.Labels | None, targets, video_s: float
         m["bytes"] = sum(uniq.values())
         if video_s:
             m["frac_1mbps"] = m["bytes"] / (MBPS_BYTES * video_s)
-        m |= score(rx, labels, targets)
+        m |= score(rx, labels, targets, trial.processed)
     if sink and rx:
-        v = score(sink, labels, targets)
+        v = score(sink, labels, targets, trial.processed)
         if v:
             m["verified_precision"], m["verified_recall"] = v["precision"], v["recall"]
+            m["verified_effective_recall"] = v["effective_recall"]
+    if trial.played:
+        m["processed_frac"] = len(trial.processed & trial.played) / len(trial.played)
     stats = read_csv(next(trial.path.parent.glob("stats_*.csv"), Path("-")))
     n = trial.path.name.split("_")[-1]
     for r in stats:
@@ -249,7 +268,8 @@ class Row:
 COLUMNS = ["throughput_fps", "latency_mean_ms", "latency_median_ms", "latency_p95_ms",
            "local_throughput_fps", "local_latency_mean_ms", "local_latency_p95_ms",
            "power_mean_w", "power_median_w", "power_p95_w", "bytes", "netsim_bytes", "frac_1mbps", "uot",
-           "precision", "recall", "verified_precision", "verified_recall", "items", "tp_items"]
+           "precision", "recall", "effective_recall", "processed_frac", "verified_precision", "verified_recall",
+           "verified_effective_recall", "items", "tp_items"]
 
 
 def collect(d: LAB.Dir) -> list[Row]:
@@ -454,7 +474,7 @@ def recall_curve_tex(pts) -> str:
     ])
 
 
-def profile_bar_figures(d: LAB.Dir, rows: list[Row], metrics=("recall", "precision", "uot", "frac_1mbps")) -> list[Path]:
+def profile_bar_figures(d: LAB.Dir, rows: list[Row], metrics=("recall", "effective_recall", "precision", "uot", "frac_1mbps")) -> list[Path]:
     """For a search subsection: each metric by profile, a group of bars per
     source."""
     plt = setup_matplotlib()

@@ -326,7 +326,7 @@ class Dir:
             text += ["[[uploads]]", f'file = "{u}"']
         for s in sources:
             note = ("already in fermi's files directory (videos/ has a copy for its length)" if s.kind == "video"
-                    else "a directory of images already in fermi's files directory (see lab/README.md)")
+                    else "a directory of images already in fermi's files directory (scripts/prepare_datasets.py)")
             text += [f"[[uploads]] # {note}", f'file = "{s.upload}"', "no_upload = true"]
         text += ["", "[daemons]", "[daemons.lambda2]", "orchestrator = true", 'prefix = ""',
                  "[daemons.fermi]", 'prefix = "root@fermi:"', "",
