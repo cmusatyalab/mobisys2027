@@ -5,3 +5,5 @@
 *.jpeg
 archives/
 runs/
+__pycache__/
+*.pyc
