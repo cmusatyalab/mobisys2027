@@ -3,13 +3,18 @@ name = "vehicle.telemetry"
 tokens = 1
 [[producers]]
 name = "vehicle.rgb"
+<<<<<<< Updated upstream
 tokens = 1
+=======
+tokens = 2
+>>>>>>> Stashed changes
 
 [[engines]]
 name = "remote.gcs"
 location = "remote"
 [[engines]]
 name = "local.encoder"
+<<<<<<< Updated upstream
 location = "local"
 [[engines]]
 name = "local.detection_qnn"
@@ -19,6 +24,8 @@ name = "local.detection_log"
 location = "local"
 [[engines]]
 name = "local.cop_tracking"
+=======
+>>>>>>> Stashed changes
 location = "local"
 [[engines]]
 name = "remote.decoder"
@@ -29,12 +36,22 @@ location = "remote"
 [[engines]]
 name = "remote.detection_log"
 location = "remote"
+[[engines]]
+name = "local.cop_tracking"
+location = "local"
+[[engines]]
+name = "local.detection_qnn"
+location = "local"
+[[engines]]
+name = "local.detection_log"
+location = "local"
 
 [[edges]]
 from = "vehicle.telemetry"
 to = "remote.gcs"
 timeout = "1s"
 [[edges]]
+<<<<<<< Updated upstream
 from = "vehicle.rgb"
 to = "local.encoder"
 timeout = "1s"
@@ -65,4 +82,36 @@ timeout = "1s"
 [[edges]]
 from = "remote.detection"
 to = "remote.detection_log"
+=======
+from = "local.encoder"
+to = "remote.gcs"
+timeout = "1s"
+[[edges]]
+from = "vehicle.rgb"
+to = "local.encoder"
+timeout = "1s"
+[[edges]]
+from = "local.encoder"
+to = "remote.decoder"
+timeout = "1s"
+[[edges]]
+from = "remote.decoder"
+to = "remote.detection"
+timeout = "1s"
+[[edges]]
+from = "remote.detection"
+to = "remote.detection_log"
+timeout = "1s"
+[[edges]]
+from = "vehicle.rgb"
+to = "local.detection_qnn"
+timeout = "1s"
+[[edges]]
+from = "local.detection_qnn"
+to = "local.detection_log"
+timeout = "1s"
+[[edges]]
+from = "vehicle.rgb"
+to = "local.cop_tracking"
+>>>>>>> Stashed changes
 timeout = "1s"
