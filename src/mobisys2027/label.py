@@ -13,7 +13,8 @@
 The boxes are saved in labels/<name>.json (see mobisys2027/labels.py),
 normalized to the frame, so a proxy at a lower resolution labels the full
 video. Label the mannequin as "mannequin" and anyone else in view as
-"person".
+"person"; in a file with other classes (e.g. "robotic dog", "chair", "bag"),
+the number keys pick those.
 
 Mouse: drag to draw a box of the current class; click a box to select it.
 
@@ -21,7 +22,9 @@ Keys:
     d / right   next frame             a / left   previous frame
     l / j       forward / back 30      L / J      forward / back 300
     n / b       next / previous frame whose boxes differ from this one's
-    1 / 2       class mannequin / person (and set the selected box to it)
+    1 - 9       class (and set the selected box to it): 1 mannequin, 2 person,
+                or, for another target, 1 is the target; then the file's
+                other classes, most boxes first; shown at startup
     x / del     delete the selected box    X   delete every box on this frame
     backspace   delete the box drawn last on this frame (or the selected one)
     c           copy the previous frame's boxes onto this one
@@ -53,7 +56,22 @@ KEY_BACKSPACE = (8, 0xFF08)
 KEY_DELETE = (0xFFFF, 0xFF9F, 3014656)
 KEY_UNDO = (ord("u"), 26)  # u, ctrl+z
 KEY_REDO = (ord("U"), 25)  # U, ctrl+y
-CLASSES = {ord("1"): L.MANNEQUIN, ord("2"): L.PERSON}
+# Colors of the classes beyond COLORS, in key order
+PALETTE = [(255, 200, 0), (255, 0, 255), (0, 0, 255), (255, 255, 0), (0, 255, 255), (128, 128, 255)]
+
+
+def class_keys(labels: L.Labels) -> dict[int, str]:
+    """The class each number key picks: the target (or, for a mannequin or
+    person target, 1 mannequin and 2 person, as always), the file's other
+    classes (most boxes first), then mannequin and person; at most 9."""
+    counts: dict[str, int] = {}
+    for boxes in labels.boxes.values():
+        for b in boxes:
+            counts[b[0]] = counts.get(b[0], 0) + 1
+    first = [L.MANNEQUIN, L.PERSON] if labels.target in (L.MANNEQUIN, L.PERSON) else [labels.target]
+    names = [*first, *sorted(counts, key=lambda c: -counts[c]), L.MANNEQUIN, L.PERSON]
+    names = list(dict.fromkeys(n for n in names if n))[:9]
+    return {ord(str(k + 1)): name for k, name in enumerate(names)}
 PROXY_WIDTH = 960
 
 
@@ -213,7 +231,10 @@ class Editor:
         self.frames = frames
         self.label_file = label_file
         self.i = 0
-        self.cls = labels.target if labels.target in (L.MANNEQUIN, L.PERSON) else L.MANNEQUIN
+        self.classes = class_keys(labels)
+        self.cls = next(iter(self.classes.values()))
+        others = [c for c in self.classes.values() if c not in COLORS]
+        self.colors = {**COLORS, **{c: PALETTE[k % len(PALETTE)] for k, c in enumerate(others)}}
         self.selected: int | None = None
         self.drag_start = None
         self.drag_now = None
@@ -223,7 +244,7 @@ class Editor:
         self.dirty = False
         self.playing = False
         self.view_scale = 1.0
-        self.message = ""
+        self.message = "  ".join(f"{chr(k)} {c}" for k, c in self.classes.items())
 
     # --- state changes
     def remember(self, frames):
@@ -310,8 +331,8 @@ class Editor:
             while 0 <= f < self.frames.known() and self.frames.get(f) is not None and self.signature(f) == here:
                 f += step
             self.goto(f)
-        elif ch in CLASSES:
-            self.cls = CLASSES[ch]
+        elif ch in self.classes:
+            self.cls = self.classes[ch]
             if self.selected is not None and self.selected < len(boxes):
                 self.remember([self.i])
                 b = boxes[self.selected]
@@ -405,7 +426,7 @@ class Editor:
         img = cv2.resize(img, (round(w * scale), round(h * scale)))
         self.view_h, self.view_w = img.shape[:2]
         for k, b in enumerate(self.labels.frame_boxes(self.i)):
-            color = COLORS.get(b[0], OTHER_COLOR)
+            color = self.colors.get(b[0], OTHER_COLOR)
             p0 = (round(b[1] * self.view_w), round(b[2] * self.view_h))
             p1 = (round(b[3] * self.view_w), round(b[4] * self.view_h))
             cv2.rectangle(img, p0, p1, color, 3 if k == self.selected else 1)
@@ -413,7 +434,7 @@ class Editor:
         if self.drag_start and self.drag_now:
             p0 = (round(self.drag_start[0] * self.view_w), round(self.drag_start[1] * self.view_h))
             p1 = (round(self.drag_now[0] * self.view_w), round(self.drag_now[1] * self.view_h))
-            cv2.rectangle(img, p0, p1, COLORS.get(self.cls, OTHER_COLOR), 1)
+            cv2.rectangle(img, p0, p1, self.colors.get(self.cls, OTHER_COLOR), 1)
         total = self.frames.known()
         status = (
             f"{self.i}/{total - 1}  t={self.i / self.labels.fps:6.2f}s  class={self.cls}"
@@ -427,7 +448,7 @@ class Editor:
         cv2.line(img, (0, y), (self.view_w, y), (60, 60, 60), 6)
         for first, last in self.labels.target_runs():
             x0, x1 = round(first / total * self.view_w), max(round((last + 1) / total * self.view_w), round(first / total * self.view_w) + 1)
-            cv2.line(img, (x0, y), (x1, y), COLORS[L.MANNEQUIN] if self.labels.target == L.MANNEQUIN else (255, 200, 0), 6)
+            cv2.line(img, (x0, y), (x1, y), self.colors.get(self.labels.target, (255, 200, 0)), 6)
         xi = round(self.i / total * self.view_w)
         cv2.line(img, (xi, y - 8), (xi, y + 6), (255, 255, 255), 2)
         return img

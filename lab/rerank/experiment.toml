@@ -1,0 +1,32 @@
+# box_rerank on the nov16 robot dog run: heisenberg replays it at 720p
+# (nov16_tracking_720p.mp4, already in its files directory) through YOLO and
+# box_rerank; the crops go to lambda's Qwen3-VL verifier under each network
+# profile. Scored offline from mb/candidates.csv: what YOLO alone would have
+# reported (its best box from 0.5) against what box_rerank reported.
+
+[[experiments]]
+name = "rerank_nov16"
+vehicle = "drone"
+[experiments.video]
+video = "nov16_tracking_720p.mp4"
+flow = "flow.toml"
+auto = true
+grace = 30  # for the queued crops to reach the verifier
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[daemons]
+[daemons.lambda]
+orchestrator = true
+prefix = ""
+[daemons.heisenberg]
+prefix = "root@heisenberg:"
+
+[results] # moved off the hosts after each trial
+heisenberg = "heisenberg/root/.local/share/steeleagle/files/mb/"
+[catalogs] # copied, the sources are kept
+box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
+verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"

@@ -33,6 +33,15 @@ uses) is shown a few crops of each track and asked whether it is a
 mannequin or a real person, so the track is labeled "mannequin" or "person".
 Tracks seen in fewer than --min-track frames are dropped as noise.
 
+For a fine-tuned checkpoint, e.g. the robot dog model, give --weights, its
+class names by id in --labels (a JSON list, as the detection plugin's
+rfdetr_labels), the classes to keep in --keep, and --no-vlm to label each
+track with the class the detector gave it most:
+
+    uv run scripts/autolabel.py nov16_tracking_720p.mp4 -o labels/nov16_tracking.json \
+        --weights dog_extended_2x.pth --labels dog_extended.json --keep "robotic dog" \
+        --no-vlm --target "robotic dog"
+
 The file written is the labels/<name>.json format of mobisys2027/labels.py,
 with boxes normalized to the frame.
 """
@@ -43,6 +52,7 @@ import json
 import sys
 import time
 import urllib.request
+from collections import Counter
 from pathlib import Path
 
 import cv2
@@ -133,6 +143,11 @@ def main():
     parser.add_argument("--model", default="qwen3-vl:8b-instruct")
     parser.add_argument("--target", default="mannequin")
     parser.add_argument("--limit", type=int, default=0, help="only the first N frames (testing)")
+    parser.add_argument("--weights", type=Path, help="an RF-DETR .pth checkpoint instead of the stock model of --size")
+    parser.add_argument("--labels", type=Path, help="JSON list of the checkpoint's class names, by class id")
+    parser.add_argument("--keep", nargs="+", default=["person"], help="the classes kept (default: person)")
+    parser.add_argument("--no-vlm", action="store_true",
+                        help="label each track with its most frequent class, instead of asking the VLM")
     args = parser.parse_args()
 
     import rfdetr
@@ -147,7 +162,13 @@ def main():
 
     classes = {"nano": "RFDETRNano", "small": "RFDETRSmall", "medium": "RFDETRMedium", "large": "RFDETRLarge",
                "xlarge": "RFDETRXLarge", "2xlarge": "RFDETR2XLarge"}
-    model = getattr(rfdetr, classes[args.size])()
+    if args.weights:
+        # The checkpoint records its own variant, resolution and classes
+        model = rfdetr.RFDETR.from_checkpoint(str(args.weights), trust_checkpoint=True)
+    else:
+        model = getattr(rfdetr, classes[args.size])()
+    labels = json.loads(args.labels.read_text()) if args.labels else None
+    keep_classes = {k.lower() for k in args.keep}
     try:
         model.optimize_for_inference()
     except Exception as e:
@@ -170,11 +191,15 @@ def main():
         names = det.data.get("class_name") if hasattr(det, "data") else None
         boxes = []
         for k in range(len(det)):
-            name = names[k] if names is not None else COCO_CLASSES.get(int(det.class_id[k]), str(det.class_id[k]))
-            if str(name).lower() != "person":
+            class_id = int(det.class_id[k])
+            if labels is not None and 0 <= class_id < len(labels):
+                name = labels[class_id]
+            else:
+                name = names[k] if names is not None else COCO_CLASSES.get(class_id, str(class_id))
+            if str(name).lower() not in keep_classes:
                 continue
             x0, y0, x1, y1 = det.xyxy[k]
-            boxes.append((x0 / width, y0 / height, x1 / width, y1 / height, float(det.confidence[k])))
+            boxes.append((x0 / width, y0 / height, x1 / width, y1 / height, float(det.confidence[k]), str(name)))
         tracker.update(n, boxes)
         n += 1
         if n % 300 == 0:
@@ -186,7 +211,7 @@ def main():
 
     # The crops each track shows the VLM: its most confident boxes, spread out
     wanted = {}
-    for ti, t in enumerate(tracks):
+    for ti, t in enumerate(tracks if not args.no_vlm else []):
         frames = sorted(t["boxes"], key=lambda f: -t["boxes"][f][4])[: max(1, args.crops * 4)]
         frames = sorted(frames)[:: max(1, len(frames) // args.crops)][: args.crops]
         for f in frames:
@@ -199,7 +224,7 @@ def main():
         if not ok:
             break
         for ti in wanted.get(f, []):
-            x0, y0, x1, y1, _ = tracks[ti]["boxes"][f]
+            x0, y0, x1, y1 = tracks[ti]["boxes"][f][:4]
             pw, ph = (x1 - x0) * 0.3, (y1 - y0) * 0.3
             X0, Y0 = int(max(0, (x0 - pw) * width)), int(max(0, (y0 - ph) * height))
             X1, Y1 = int(min(width, (x1 + pw) * width)), int(min(height, (y1 + ph) * height))
@@ -210,7 +235,10 @@ def main():
 
     boxes = {}
     for ti, t in enumerate(tracks):
-        label = ask_vlm(crops[ti], args.ollama, args.model, timeout=120) or "person"
+        if args.no_vlm:
+            label = Counter(box[5] for box in t["boxes"].values()).most_common(1)[0][0]
+        else:
+            label = ask_vlm(crops[ti], args.ollama, args.model, timeout=120) or "person"
         first, last = min(t["boxes"]), max(t["boxes"])
         print(f"track {ti}: frames {first}-{last} ({len(t['boxes'])} seen): {label}", file=sys.stderr)
         # Fill the gaps the detector missed inside the track by interpolation
