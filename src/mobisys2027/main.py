@@ -22,7 +22,7 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
   2. for the ambient profile only: stops the vehicle, measures the link from
      its host with iperf3 (the trial's bandwidth timeline), and restarts it,
   3. starts the mission (upload, or CompileMission for a mission folder holding
-     flow.toml and mission.json; then load and start; if StartMission fails, the
+     flow.toml and mission.json or mission.dsl; then load and start; if StartMission fails, the
      daemons get their own configs back and the run aborts) or sets the video's
      flow on the target vehicle, and starts netsim as soon as the vehicle acknowledges it
      (not for none or ambient, which run unattenuated), along with the power
@@ -101,10 +101,24 @@ from steeleagle_protocol.v1.services.vehicle import (
 )
 
 EXPERIMENT_FILE = "experiment.toml"
-# A mission folder (mission.file naming a directory) holds these, and is
-# compiled on the vehicle (CompileMission) instead of uploaded as a binary
+# A mission folder (mission.file naming a directory) holds a flow and one
+# mission source, JSON or DSL, and is compiled on the vehicle (CompileMission)
+# instead of uploaded as a binary
 MISSION_FLOW = "flow.toml"
 MISSION_JSON = "mission.json"
+MISSION_DSL = "mission.dsl"
+
+
+def mission_source(folder: Path) -> Path:
+    """A mission folder's mission source: its MISSION_JSON or MISSION_DSL
+    (exactly one of them)."""
+    found = [folder / n for n in (MISSION_JSON, MISSION_DSL) if (folder / n).is_file()]
+    if len(found) != 1:
+        raise ValueError(
+            f"mission folder {folder} must have exactly one of {MISSION_JSON} or {MISSION_DSL}"
+            + (", not both" if found else "")
+        )
+    return found[0]
 VIDEOS_DIR = "videos"  # looked for at and above the experiment directory, before it
 # Images and other media the experiments upload (e.g. a prompt image), looked for like videos/
 MEDIA_DIR = "media"
@@ -339,8 +353,8 @@ def close_ssh() -> None:
 @dataclass
 class Phase:
     kind: str  # "mission" or "video"
-    # the mission (a binary, or a folder with MISSION_FLOW and MISSION_JSON,
-    # compiled on the vehicle), or the video's flow
+    # the mission (a binary, or a folder with MISSION_FLOW and MISSION_JSON
+    # or MISSION_DSL, compiled on the vehicle), or the video's flow
     file: Path
     auto: bool
     # seconds to run each trial; 0 waits for ENTER. For a video with no
@@ -664,9 +678,12 @@ def parse_experiment(
         else:
             mission = exp_dir / sect["file"]
             if mission.is_dir():
-                for part in (MISSION_FLOW, MISSION_JSON):
-                    if not (mission / part).is_file():
-                        raise ValueError(f"{where}: mission folder {mission} has no {part}")
+                if not (mission / MISSION_FLOW).is_file():
+                    raise ValueError(f"{where}: mission folder {mission} has no {MISSION_FLOW}")
+                try:
+                    mission_source(mission)
+                except ValueError as e:
+                    raise ValueError(f"{where}: {e}") from None
             else:
                 mission = exp_file("mission.file", sect["file"])
         phases.append(Phase(
@@ -1046,15 +1063,16 @@ class Daemon:
         )
 
     def compile_mission(self, folder: Path, route: str) -> None:
-        """Compiles a mission folder's flow and JSON mission on the vehicle,
-        saved there under the folder's name. Compiling can be slow, so it gets
-        the install deadline."""
+        """Compiles a mission folder's flow and mission source (JSON or DSL)
+        on the vehicle, saved there under the folder's name. Compiling can be
+        slow, so it gets the install deadline."""
+        source = mission_source(folder)
         self.loader.CompileMission(
             upload_pb2.CompileMissionRequest(
                 name=folder.name,
                 flow=(folder / MISSION_FLOW).read_bytes(),
-                mission=(folder / MISSION_JSON).read_bytes(),
-                json=True,
+                mission=source.read_bytes(),
+                json=source.name == MISSION_JSON,
             ),
             metadata=self.route(route), timeout=INSTALL_TIMEOUT,
         )
@@ -2279,7 +2297,8 @@ def run_trial(
         if phase.no_upload:
             log(f"loading {phase.file.name} on {vehicle} (not uploaded)")
         elif phase.file.is_dir():
-            log(f"compiling and loading mission folder {phase.file.name} on {vehicle}")
+            log(f"compiling ({mission_source(phase.file).name}) and loading mission folder "
+                f"{phase.file.name} on {vehicle}")
             client.compile_mission(phase.file, vehicle)
         else:
             log(f"uploading and loading {phase.file.name} on {vehicle}")
