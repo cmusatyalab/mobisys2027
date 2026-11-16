@@ -1,11 +1,14 @@
 1.2 microbenchmarks
 
 "1.2.1 local: YOLO (QNN) on fermi, nothing sent"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,netsim_bytes,netsim_bytes_sd,processed_frac,processed_frac_sd
+parkinglot,parkinglot,normal,1,29.94,0,55.01,0,54.25,0,71.45,0,4.407,0,4.477,0,5.768,0,1.073e+04,0,1,0
 
 "1.2.2 remote: H.264 to lambda2, RF-DETR 2XL there"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,processed_frac,processed_frac_sd
+parkinglot,parkinglot,normal,1,7.656,0,233.6,0,154.1,0,636.9,0,4.066,0,4.124,0,5.06,0,2.14e+07,0,2.35e+07,0,1.983,0,1,0
 
 "1.2.3 fusion: YOLO (QNN) on fermi and RF-DETR 2XL on lambda2, fused on fermi"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,local_throughput_fps,local_throughput_fps_sd,local_latency_mean_ms,local_latency_mean_ms_sd,local_latency_p95_ms,local_latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,processed_frac,processed_frac_sd
+parkinglot,parkinglot,normal,1,17.69,0,132,0,129.9,0,157.7,0,29.67,0,59.64,0,78.77,0,6.054,0,6.145,0,7.086,0,1.24e+05,0,5.822e+05,0,0.01149,0,1,0
 

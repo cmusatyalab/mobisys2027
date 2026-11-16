@@ -48,7 +48,6 @@ class = "person"
 verifier = "webp_decoder"
 log_sent = "mb/sent.csv"
 max_queue = 512
-resend_after_ms = 30000
 
 # WebP at quality 65
 [[services]]

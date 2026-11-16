@@ -3,6 +3,7 @@
 
 [[producers]]
 name = "vehicle.rgb"
+tokens = 1
 
 [[engines]]
 name = "local.h264_encoder"
@@ -32,19 +33,19 @@ timeout = "2s"
 [[edges]]
 from = "local.h264_encoder"
 to = "remote.rx_metrics"
-timeout = "5s"
+timeout = "30s"
 
 [[edges]]
 from = "remote.rx_metrics"
 to = "remote.h264_decoder"
-timeout = "5s"
+timeout = "30s"
 
 [[edges]]
 from = "remote.h264_decoder"
 to = "remote.rfdetr"
-timeout = "5s"
+timeout = "30s"
 
 [[edges]]
 from = "remote.rfdetr"
 to = "remote.sink_metrics"
-timeout = "5s"
+timeout = "30s"

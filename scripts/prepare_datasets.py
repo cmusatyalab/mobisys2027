@@ -1,6 +1,6 @@
 """Prepares the image datasets for the experiments, and pushes them to fermi.
 
-Run on lambda2 (it has the room; this downloads ~13 GB of MMLA), from the
+Run on lambda2 (it has the room; this downloads ~15 GB of MMLA), from the
 root of the repository:
 
     uv run --with huggingface_hub python scripts/prepare_datasets.py \\
@@ -17,9 +17,9 @@ fake drone plays it from (`images = "<name>"`).
 - sard: a Roboflow export, images/ and labels/ (class 0: person);
 - wisard: images and labels side by side (class 0: person);
 - mmla: clips of MMLA The Wilds (imageomics/mmla_wilds on Hugging Face),
-  downloaded here, spliced as MMLA_CLIPS: four 50-frame onager clips
-  (class 2, the target) spread through zebra and giraffe footage, so 5% of
-  the frames hold an onager and the rest are look-alike negatives. Each
+  downloaded here, spliced as MMLA_CLIPS: four 50-frame African painted
+  dog clips (class 3, the target) spread through zebra and giraffe footage,
+  so 5% of the frames hold a dog and the rest are negatives. Each
   image is prefixed with its place in the splice, so the fake drone plays
   them in that order.
 """
@@ -36,17 +36,21 @@ import cv2
 from mobisys2027 import labels as L
 
 MMLA_REPO = "imageomics/mmla_wilds"
+# The dog video's frames are in zips (32 GB); partition_3 (frames 11000-13500,
+# 5.9 GB) has every dog clip below
+MMLA_ZIPS = {"session_1/DJI_0035/partition_3": "session_1/DJI_0035/partition_3.zip"}
 # (video, first frame, frames or None for the rest), played in this order:
-# 200 onager frames (5%) among 3800 of zebra and giraffe
+# 200 dog frames (5%) among 3800 of zebra and giraffe. The pack thins out over
+# the dog video: the clips go from ~8 dogs a frame to ~2.
 MMLA_CLIPS = [
     ("session_2/P0140018", 0, 1000),  # giraffe
-    ("session_3/P0070007", 260, 50),  # onager
+    ("session_1/DJI_0035/partition_3", 100, 50),  # dogs (~8)
     ("session_4/P0070010", 0, None),  # zebra (506)
-    ("session_3/P0090009", 275, 50),  # onager
+    ("session_1/DJI_0035/partition_3", 800, 50),  # dogs (~6)
     ("session_2/P0140018", 1000, 1000),  # giraffe
-    ("session_3/P0110011", 262, 50),  # onager
+    ("session_1/DJI_0035/partition_3", 1500, 50),  # dogs (~3)
     ("session_2/P0150019", 0, None),  # giraffe (327)
-    ("session_3/P0160016", 275, 50),  # onager
+    ("session_1/DJI_0035/partition_3", 2300, 50),  # dogs (~2)
     ("session_2/P0140018", 2000, 967),  # giraffe
 ]
 MMLA_CLASSES = {0: "zebra", 1: "giraffe", 2: "onager", 3: "dog"}
@@ -76,12 +80,22 @@ def flatten(images: list[Path], out: Path, max_width: int, numbered: bool = Fals
 
 
 def download_mmla(cache: Path) -> list[Path]:
-    from huggingface_hub import snapshot_download
+    import zipfile
 
+    from huggingface_hub import hf_hub_download, snapshot_download
+
+    videos = dict.fromkeys(v for v, _, _ in MMLA_CLIPS)
     root = Path(snapshot_download(
         MMLA_REPO, repo_type="dataset", local_dir=cache,
-        allow_patterns=[f"{v}/*" for v in dict.fromkeys(v for v, _, _ in MMLA_CLIPS)] + ["classes.txt"],
+        allow_patterns=[f"{v}/*" for v in videos if v not in MMLA_ZIPS] + ["classes.txt"],
     ))
+    for v in videos:
+        if v in MMLA_ZIPS and not ((root / v).is_dir() and L.list_images(root / v)):
+            print(f"  downloading {MMLA_ZIPS[v]}")
+            z = Path(hf_hub_download(MMLA_REPO, MMLA_ZIPS[v], repo_type="dataset", local_dir=cache))
+            with zipfile.ZipFile(z) as f:
+                f.extractall((root / v).parent)  # the zip holds <partition>/
+            z.unlink()
     images = []
     for v, first, n in MMLA_CLIPS:
         frames = L.list_images(root / v)
@@ -110,7 +124,7 @@ def main():
     if args.wisard:
         jobs.append(("wisard", L.list_images(args.wisard.expanduser()), "person", {0: "person"}))
     if not args.no_mmla:
-        jobs.append(("mmla", download_mmla(args.mmla_cache), "onager", MMLA_CLASSES))
+        jobs.append(("mmla", download_mmla(args.mmla_cache), "dog", MMLA_CLASSES))
 
     for name, images, target, classes in jobs:
         out = args.out / name

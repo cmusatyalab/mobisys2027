@@ -1,35 +1,168 @@
 2.1 search
 
 "2.1.1.1 YOLO early discard (person, conf 0.5), H.264"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,4.716,0,226.7,0,175.9,0,520.7,0,4.217,0,4.082,0,5.863,0,2.12e+06,0,2.297e+06,0,0.1964,0,1,0,1,0,0.2931,0,0.2957,0,1,0,2,0,2,0,1,0,136,0,136,0
+parkinglot,parkinglot,intermittent,1,,,6504,0,6504,0,6504,0,4.298,0,4.502,0,5.93,0,1.057e+04,0,8.888e+04,0,0.0009794,0,1,0,1,0,0.002155,0,0.002179,0,1,0,1,0,2,0,0.5,0,1,0,1,0
+traintrack,traintrack,normal,1,1.327,0,838.7,0,745.3,0,1568,0,4.638,0,4.811,0,5.902,0,4.271e+06,0,5.911e+06,0,0.3603,0,1,0,1,0,0.08625,0,0.08815,0,1,0,2,0,2,0,1,0,64,0,64,0
+traintrack,traintrack,intermittent,1,,,,,,,,,4.382,0,4.422,0,5.743,0,,,6.983e+04,0,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+street,street,normal,1,1.99,0,711.9,0,625.6,0,1379,0,4.509,0,4.415,0,6.243,0,5.872e+06,0,6.85e+06,0,0.4615,0,0.9582,0,0.9714,0,0.09884,0,0.09971,0,1,0,2,0,2,0,1,0,105,0,102,0
+street,street,intermittent,1,1.268,0,949.8,0,367.4,0,4288,0,4.537,0,4.58,0,6.007,0,7358,0,6.212e+04,0,0.0005782,0,0.9509,0,0.9718,0,0.06686,0,0.06745,0,1,0,2,0,2,0,1,0,71,0,69,0
+wisard,wisard,normal,1,,,,,,,,,1.679,0,1.561,0,2.078,0,,,3528,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard,wisard,intermittent,1,,,,,,,,,1.733,0,1.536,0,3.097,0,,,3140,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+sard,sard,normal,1,1.858,0,775.1,0,740.1,0,1407,0,1.886,0,1.84,0,2.442,0,1.824e+07,0,2.093e+07,0,1.275,0,1,0,1,0,0.2048,0,0.2048,0,1,0,,,,,,,198,0,198,0
+sard,sard,intermittent,1,,,,,,,,,1.496,0,1.431,0,1.76,0,,,1.471e+05,0,,,,,,,0,0,0,0,1,0,,,,,,,0,0,0,0
 
 "2.1.1.2 YOLO early discard recall curve: confidence 0.01, 0.1 ... 1.0, unshaped link"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot_c001,parkinglot,none,1,10.59,0,139.5,0,135.5,0,174.5,0,5.174,0,5.224,0,6.451,0,1.613e+07,0,1.494,0,0.2408,0,0.3333,0,0.5927,0,0.5927,0,1,0,2,0,2,0,1,0,825,0,275,0
+parkinglot_c010,parkinglot,none,1,4.875,0,132.6,0,129.2,0,160.1,0,4.518,0,4.564,0,5.591,0,2.276e+04,0,0.002109,0,0.8535,0,0.905,0,0.472,0,0.472,0,1,0,2,0,2,0,1,0,242,0,219,0
+parkinglot_c020,parkinglot,none,1,4.472,0,141.6,0,140,0,172.8,0,4.665,0,4.763,0,6.06,0,3.332e+06,0,0.3087,0,0.9237,0,0.9716,0,0.4418,0,0.4418,0,1,0,2,0,2,0,1,0,211,0,205,0
+parkinglot_c030,parkinglot,none,1,3.958,0,147.4,0,145.6,0,179.4,0,4.521,0,4.643,0,5.787,0,2.944e+06,0,0.2727,0,0.9599,0,0.9894,0,0.403,0,0.403,0,1,0,2,0,2,0,1,0,189,0,187,0
+parkinglot_c040,parkinglot,none,1,5.629,0,144.3,0,133,0,191.1,0,4.608,0,4.608,0,6.011,0,2.565e+06,0,0.2376,0,1,0,1,0,0.3556,0,0.3579,0,1,0,2,0,2,0,1,0,165,0,165,0
+parkinglot_c050,parkinglot,none,1,5.253,0,139.6,0,133.2,0,171.3,0,4.395,0,4.45,0,5.816,0,2.478e+06,0,0.2296,0,1,0,1,0,0.3319,0,0.3341,0,1,0,2,0,2,0,1,0,154,0,154,0
+parkinglot_c060,parkinglot,none,1,4.614,0,138.9,0,130.7,0,177.6,0,4.584,0,4.507,0,6.37,0,2.247e+06,0,0.2082,0,1,0,1,0,0.2909,0,0.2935,0,1,0,2,0,2,0,1,0,135,0,135,0
+parkinglot_c070,parkinglot,none,1,2.567,0,150,0,138.8,0,211.8,0,4.36,0,4.192,0,5.764,0,1.758e+06,0,0.1629,0,1,0,1,0,0.1638,0,0.1649,0,1,0,2,0,2,0,1,0,76,0,76,0
+parkinglot_c080,parkinglot,none,1,0.4786,0,181.4,0,157.2,0,322.7,0,4.361,0,4.291,0,5.734,0,5.246e+05,0,0.0486,0,1,0,1,0,0.03017,0,0.03037,0,1,0,2,0,2,0,1,0,14,0,14,0
+parkinglot_c090,parkinglot,none,1,,,,,,,,,4.4,0,4.51,0,5.754,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+parkinglot_c100,parkinglot,none,1,,,,,,,,,4.487,0,4.437,0,6.016,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+traintrack_c001,traintrack,none,1,6.322,0,165.4,0,163.2,0,209.3,0,5.01,0,5.09,0,6.834,0,3.897e+07,0,3.288,0,0.5455,0,0.6558,0,0.4596,0,0.4596,0,1,0,2,0,2,0,1,0,520,0,341,0
+traintrack_c010,traintrack,none,1,4.447,0,156.4,0,150.7,0,191.9,0,4.61,0,4.606,0,6.547,0,1.772e+07,0,1.495,0,0.9189,0,0.9711,0,0.3625,0,0.3625,0,1,0,2,0,2,0,1,0,277,0,269,0
+traintrack_c020,traintrack,none,1,3.554,0,156.1,0,151.3,0,183.4,0,4.694,0,4.696,0,6.725,0,1.416e+07,0,1.195,0,0.935,0,0.9762,0,0.2763,0,0.2763,0,1,0,2,0,2,0,1,0,210,0,205,0
+traintrack_c030,traintrack,none,1,3.445,0,156.5,0,152.6,0,190.7,0,4.699,0,4.597,0,6.902,0,1.325e+07,0,1.118,0,0.9629,0,0.9902,0,0.2722,0,0.2722,0,1,0,2,0,2,0,1,0,204,0,202,0
+traintrack_c040,traintrack,none,1,3.384,0,155.9,0,151.1,0,191.5,0,4.515,0,4.449,0,6.295,0,1.288e+07,0,1.087,0,0.981,0,0.995,0,0.2668,0,0.2668,0,1,0,2,0,2,0,1,0,199,0,198,0
+traintrack_c050,traintrack,none,1,3.925,0,159.8,0,153.1,0,206.8,0,4.553,0,4.198,0,6.752,0,1.239e+07,0,1.045,0,1,0,1,0,0.252,0,0.2548,0,1,0,2,0,2,0,1,0,187,0,187,0
+traintrack_c060,traintrack,none,1,3.616,0,163.7,0,159.5,0,196.5,0,4.584,0,4.344,0,6.709,0,1.083e+07,0,0.9133,0,1,0,1,0,0.2264,0,0.2276,0,1,0,2,0,2,0,1,0,168,0,168,0
+traintrack_c070,traintrack,none,1,3.207,0,157.5,0,152.5,0,190.4,0,4.563,0,4.498,0,6.729,0,9.435e+06,0,0.796,0,1,0,1,0,0.1968,0,0.197,0,1,0,2,0,2,0,1,0,146,0,146,0
+traintrack_c080,traintrack,none,1,7.835,0,181.4,0,160,0,248,0,4.535,0,4.632,0,5.868,0,3.842e+06,0,0.3241,0,1,0,1,0,0.0566,0,0.05699,0,1,0,1,0,2,0,0.5,0,42,0,42,0
+traintrack_c090,traintrack,none,1,,,,,,,,,4.517,0,4.646,0,5.783,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+traintrack_c100,traintrack,none,1,,,,,,,,,4.359,0,4.507,0,5.666,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+street_c001,street,none,1,13.38,0,131.1,0,128.8,0,159,0,5.307,0,5.361,0,6.623,0,1.141e+05,0,0.008964,0,0.452,0,0.5061,0,0.6056,0,0.6056,0,1,0,2,0,2,0,1,0,1235,0,625,0
+street_c010,street,none,1,5.074,0,155.8,0,152.5,0,185.2,0,4.839,0,4.837,0,7.057,0,2.054e+07,0,1.614,0,0.8298,0,0.8655,0,0.343,0,0.343,0,1,0,2,0,2,0,1,0,409,0,354,0
+street_c020,street,none,1,4.708,0,152.3,0,149.7,0,183.9,0,4.836,0,4.817,0,7.049,0,1.964e+07,0,1.543,0,0.9024,0,0.9223,0,0.345,0,0.345,0,1,0,2,0,2,0,1,0,386,0,356,0
+street_c030,street,none,1,5.028,0,149.3,0,145.6,0,180.2,0,4.862,0,4.925,0,6.908,0,1.774e+07,0,1.394,0,0.971,0,0.9798,0,0.3295,0,0.3295,0,1,0,2,0,2,0,1,0,347,0,340,0
+street_c040,street,none,1,5.794,0,153.5,0,148.5,0,192.9,0,4.849,0,4.81,0,7.026,0,1.401e+07,0,1.101,0,0.9786,0,0.9867,0,0.2868,0,0.2899,0,1,0,2,0,2,0,1,0,300,0,296,0
+street_c050,street,none,1,5.546,0,151.6,0,148.7,0,189.9,0,4.842,0,4.881,0,7.024,0,1.351e+07,0,1.062,0,0.9818,0,0.9895,0,0.2752,0,0.2776,0,1,0,2,0,2,0,1,0,287,0,284,0
+street_c060,street,none,1,4.641,0,161.3,0,155.3,0,205.1,0,4.722,0,4.752,0,6.389,0,1.196e+07,0,0.9399,0,0.9926,0,0.9958,0,0.2277,0,0.2295,0,1,0,2,0,2,0,1,0,236,0,235,0
+street_c070,street,none,1,2.883,0,169.8,0,163.4,0,218.3,0,4.631,0,4.593,0,6.648,0,9.229e+06,0,0.7252,0,1,0,1,0,0.1415,0,0.1419,0,1,0,2,0,2,0,1,0,146,0,146,0
+street_c080,street,none,1,3.622,0,216.4,0,180,0,529,0,4.386,0,4.398,0,5.976,0,1.979e+06,0,0.1555,0,1,0,1,0,0.02519,0,0.02537,0,1,0,1,0,2,0,0.5,0,26,0,26,0
+street_c090,street,none,1,,,,,,,,,4.37,0,4.293,0,5.929,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+street_c100,street,none,1,,,,,,,,,4.46,0,4.498,0,5.83,0,,,,,,,,,0,0,0,0,1,0,0,0,2,0,0,0,0,0,0,0
+wisard_c001,wisard,none,1,2.892,0,214.2,0,202,0,323.1,0,3.101,0,2.959,0,4.403,0,1.118e+07,0,3.388,0,1,0,1,0,0.1877,0,0.1877,0,1,0,1,0,1,0,1,0,49,0,49,0
+wisard_c010,wisard,none,1,0.3893,0,313.2,0,251.3,0,514.9,0,3.086,0,2.98,0,3.606,0,1.598e+06,0,0.4842,0,1,0,1,0,0.02299,0,0.02299,0,1,0,1,0,1,0,1,0,6,0,6,0
+wisard_c020,wisard,none,1,,,512.5,0,512.5,0,512.5,0,2.302,0,1.857,0,4.735,0,3.05e+05,0,0.09244,0,1,0,1,0,0.003831,0,0.003831,0,1,0,1,0,1,0,1,0,1,0,1,0
+wisard_c030,wisard,none,1,,,,,,,,,2.352,0,2.218,0,3.837,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c040,wisard,none,1,,,,,,,,,1.918,0,1.763,0,3.543,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c050,wisard,none,1,,,,,,,,,2.806,0,2.681,0,3.354,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c060,wisard,none,1,,,,,,,,,2.448,0,2.405,0,2.694,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c070,wisard,none,1,,,,,,,,,1.775,0,1.533,0,3.451,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c080,wisard,none,1,,,,,,,,,1.858,0,1.698,0,3.494,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c090,wisard,none,1,,,,,,,,,2.447,0,2.31,0,3.473,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_c100,wisard,none,1,,,,,,,,,2.412,0,2.258,0,3.725,0,,,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+sard_c001,sard,none,1,6.508,0,120.9,0,121.5,0,146.7,0,2.349,0,2.247,0,3.027,0,7.01e+07,0,4.902,0,0.962,0,0.9575,0,0.6991,0,0.6991,0,1,0,,,,,,,706,0,676,0
+sard_c010,sard,none,1,3.868,0,75.05,0,72.84,0,89.56,0,1.861,0,1.743,0,2.209,0,5.67e+04,0,0.003965,0,1,0,1,0,0.4374,0,0.4374,0,1,0,,,,,,,423,0,423,0
+sard_c020,sard,none,1,3.329,0,122.5,0,122.1,0,151.7,0,1.689,0,1.604,0,2.138,0,3.54e+07,0,2.475,0,1,0,1,0,0.3754,0,0.3754,0,1,0,,,,,,,363,0,363,0
+sard_c030,sard,none,1,2.776,0,124.9,0,124.8,0,156.5,0,2.535,0,2.44,0,3.469,0,2.985e+07,0,2.088,0,1,0,1,0,0.3133,0,0.3133,0,1,0,,,,,,,303,0,303,0
+sard_c040,sard,none,1,2.401,0,121,0,120.2,0,147.8,0,1.717,0,1.604,0,2.379,0,2.572e+07,0,1.799,0,1,0,1,0,0.274,0,0.274,0,1,0,,,,,,,265,0,265,0
+sard_c050,sard,none,1,2.267,0,121.1,0,121.2,0,146.6,0,1.533,0,1.431,0,2.082,0,2.418e+07,0,1.691,0,1,0,1,0,0.2596,0,0.2596,0,1,0,,,,,,,251,0,251,0
+sard_c060,sard,none,1,1.727,0,122.7,0,122.6,0,146.8,0,1.651,0,1.544,0,2.233,0,1.83e+07,0,1.28,0,1,0,1,0,0.1975,0,0.1975,0,1,0,,,,,,,191,0,191,0
+sard_c070,sard,none,1,1.263,0,123.2,0,122,0,149.6,0,1.446,0,1.354,0,1.865,0,1.361e+07,0,0.952,0,1,0,1,0,0.1448,0,0.1448,0,1,0,,,,,,,140,0,140,0
+sard_c080,sard,none,1,0.7027,0,76.34,0,72.53,0,87.92,0,1.431,0,1.357,0,1.869,0,1.296e+04,0,0.0009062,0,1,0,1,0,0.07963,0,0.07963,0,1,0,,,,,,,77,0,77,0
+sard_c090,sard,none,1,,,,,,,,,2.305,0,2.244,0,2.94,0,,,,,,,,,0,0,0,0,1,0,,,,,,,0,0,0,0
+sard_c100,sard,none,1,,,,,,,,,1.5,0,1.447,0,1.713,0,,,,,,,,,0,0,0,0,1,0,,,,,,,0,0,0,0
 
 "2.1.1.3 YOLO early discard + crop to the best person, WebP"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,7.911,0,89.65,0,85.49,0,118.9,0,4.098,0,3.986,0,5.691,0,1.06e+05,0,1.748e+05,0,0.009819,0,1,0,1,0,0.5043,0,0.5043,0,1,0,2,0,2,0,1,0,234,0,234,0
+parkinglot,parkinglot,intermittent,1,0.436,0,2201,0,739.2,0,8250,0,4.283,0,4.234,0,5.876,0,6891,0,3.594e+04,0,0.0006384,0,1,0,1,0,0.03664,0,0.03664,0,1,0,2,0,2,0,1,0,17,0,17,0
+traintrack,traintrack,normal,1,6.76,0,90.58,0,87.76,0,118.2,0,4.788,0,4.98,0,6.127,0,4.41e+05,0,6.933e+05,0,0.03721,0,1,0,1,0,0.4353,0,0.4353,0,1,0,2,0,2,0,1,0,323,0,323,0
+traintrack,traintrack,intermittent,1,0.5317,0,1979,0,1217,0,5930,0,4.664,0,4.83,0,5.971,0,3.313e+04,0,8.201e+04,0,0.002795,0,1,0,1,0,0.04178,0,0.04178,0,1,0,2,0,2,0,1,0,31,0,31,0
+street,street,normal,1,9.237,0,90.62,0,87.49,0,119,0,4.564,0,4.722,0,5.866,0,4.29e+05,0,7.852e+05,0,0.03371,0,0.9972,0,0.9938,0,0.4622,0,0.4622,0,1,0,2,0,2,0,1,0,480,0,477,0
+street,street,intermittent,1,0.1119,0,3199,0,3368,0,6916,0,4.574,0,4.673,0,6.063,0,3589,0,4.588e+04,0,0.000282,0,0.8546,0,0.7143,0,0.004845,0,0.004845,0,1,0,2,0,2,0,1,0,7,0,5,0
+wisard,wisard,normal,1,,,,,,,,,1.66,0,1.642,0,1.863,0,,,3782,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard,wisard,intermittent,1,,,,,,,,,1.749,0,1.646,0,1.81,0,,,3194,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+sard,sard,normal,1,2.27,0,64.91,0,57.53,0,121.8,0,2.328,0,2.276,0,2.923,0,7.429e+05,0,8.536e+05,0,0.05195,0,1,0,1,0,0.2585,0,0.2585,0,1,0,,,,,,,250,0,250,0
+sard,sard,intermittent,1,0.5489,0,3954,0,640.6,0,1.878e+04,0,1.453,0,1.418,0,1.666,0,6.476e+04,0,1.135e+05,0,0.004529,0,1,0,1,0,0.05171,0,0.05171,0,1,0,,,,,,,50,0,50,0
 
 "2.1.1.4 YOLO early discard + crop + prioritized reintegration, WebP"
-(no runs yet)
-
-"2.1.1.5 YOLO early discard + crop + reintegration, verified by RF-DETR 2XL (conf 0.85)"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,9.411,0,518.5,0,91.65,0,5162,0,4.267,0,3.927,0,6.082,0,1.255e+05,0,2.113e+05,0,0.01163,0,1,0,1,0,0.5129,0,0.5129,0,1,0,2,0,2,0,1,0,238,0,238,0
+parkinglot_lossy,parkinglot,intermittent,1,0.4047,0,2.951e+04,0,2.148e+04,0,8.639e+04,0,3.725,0,3.549,0,5.437,0,1.766e+04,0,9.67e+04,0,0.001636,0,1,0,1,0,0.0819,0,0.0819,0,1,0,2,0,2,0,1,0,38,0,38,0
+traintrack,traintrack,normal,1,6.742,0,91.8,0,89.96,0,116.9,0,4.548,0,4.492,0,6.71,0,4.394e+05,0,7.048e+05,0,0.03707,0,1,0,1,0,0.4326,0,0.4326,0,1,0,2,0,2,0,1,0,321,0,321,0
+traintrack_lossy,traintrack,intermittent,1,0.3807,0,9542,0,4629,0,3.097e+04,0,3.461,0,3.163,0,5.332,0,2.926e+04,0,1.26e+05,0,0.002468,0,1,0,1,0,0.03774,0,0.03774,0,1,0,2,0,2,0,1,0,28,0,28,0
+street,street,normal,1,9.65,0,104.5,0,88.44,0,166.5,0,4.714,0,4.636,0,6.28,0,4.396e+05,0,8.227e+05,0,0.03455,0,0.9972,0,0.9937,0,0.4603,0,0.4603,0,1,0,2,0,2,0,1,0,478,0,475,0
+street_lossy,street,intermittent,1,0.5748,0,1.959e+04,0,6410,0,6.572e+04,0,3.736,0,3.515,0,5.424,0,5.468e+04,0,1.741e+05,0,0.004297,0,0.9785,0,0.9571,0,0.06492,0,0.06492,0,1,0,2,0,2,0,1,0,70,0,67,0
+wisard,wisard,normal,1,,,,,,,,,1.943,0,1.722,0,3.643,0,,,3787,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+wisard_lossy,wisard,intermittent,1,,,,,,,,,2.644,0,2.557,0,3.667,0,,,1.076e+04,0,,,,,,,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0
+sard,sard,normal,1,2.26,0,65.01,0,57.31,0,113.2,0,1.576,0,1.515,0,1.968,0,7.434e+05,0,8.618e+05,0,0.05198,0,1,0,1,0,0.2585,0,0.2585,0,1,0,,,,,,,250,0,250,0
+sard_lossy,sard,intermittent,1,0.4706,0,2.866e+04,0,2914,0,9.27e+04,0,1.968,0,1.884,0,2.619,0,1.7e+05,0,2.769e+05,0,0.01189,0,1,0,1,0,0.0848,0,0.0848,0,1,0,,,,,,,82,0,82,0
 
 "2.1.2 change detection: PatchCore, reintegration, H.264"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,items,items_sd,tp_items,tp_items_sd
+field,field,normal,1,2.05,0,7.605e+04,0,3289,0,4.321e+05,0,6.843,0,6.847,0,7.569,0,2.498e+08,0,2.639e+08,0,2.275,0,0.009012,0,0.02282,0,0.2162,0,0.9524,0,0.3403,0,1753,0,40,0
+field_lossy,field,intermittent,1,,,,,,,,,6.474,0,6.476,0,7.089,0,,,1.452e+06,0,,,,,,,0,0,0,0,0.3596,0,0,0,0,0
 
 "2.1.3.1 cliped, text prompt ""person"", no learning"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,1.522,0,403.3,0,399,0,444.9,0,5.283,0,5.285,0,6.511,0,1.228e+05,0,1.681e+05,0,0.01138,0,0.3766,0,0.4526,0,0.09267,0,0.86,0,0.08098,0,0.4526,0,0.09267,0,0.86,0,2,0,2,0,1,0,1,0,95,0,43,0
+parkinglot_lossy,parkinglot,intermittent,1,1.156,0,3.716e+04,0,3.401e+04,0,8.278e+04,0,4.79,0,4.681,0,6.239,0,1.248e+05,0,2.022e+05,0,0.01156,0,0.3867,0,0.4382,0,0.08405,0,0.78,0,0.08595,0,0.4382,0,0.08405,0,0.78,0,2,0,2,0,1,0,1,0,89,0,39,0
+traintrack,traintrack,normal,1,1.855,0,416.5,0,413.1,0,461.1,0,5.186,0,5.157,0,6.443,0,7.763e+05,0,8.654e+05,0,0.06549,0,0.7553,0,0.4714,0,0.08895,0,0.8462,0,0.08821,0,0.4714,0,0.08895,0,0.8462,0,2,0,2,0,1,0,1,0,140,0,66,0
+traintrack_lossy,traintrack,intermittent,1,0.5284,0,2.676e+04,0,6985,0,1.088e+05,0,4.76,0,4.666,0,6.091,0,2.615e+05,0,3.302e+05,0,0.02206,0,0.663,0,0.35,0,0.0283,0,0.2625,0,0.08979,0,0.35,0,0.0283,0,0.2625,0,2,0,2,0,1,0,1,0,60,0,21,0
+street,street,normal,1,1.844,0,410.2,0,408.4,0,448.4,0,5.164,0,5.175,0,6.262,0,5.972e+05,0,6.746e+05,0,0.04693,0,0.5835,0,0.3522,0,0.05426,0,0.5,0,0.09303,0,0.3522,0,0.05426,0,0.5,0,2,0,2,0,1,0,1,0,159,0,56,0
+street_lossy,street,intermittent,1,0.4491,0,2.432e+04,0,1.196e+04,0,6.389e+04,0,4.734,0,4.639,0,6.091,0,1.685e+05,0,2.406e+05,0,0.01324,0,0.394,0,0.22,0,0.01066,0,0.0991,0,0.09222,0,0.22,0,0.01066,0,0.0991,0,2,0,2,0,1,0,1,0,50,0,11,0
+wisard,wisard,normal,1,1.357,0,482.9,0,476.8,0,523.6,0,3.524,0,3.485,0,4.186,0,4.614e+04,0,7.658e+04,0,0.01398,0,0.7275,0,0.75,0,0.02299,0,0.1364,0,0.1705,0,0.75,0,0.02299,0,0.1364,0,1,0,1,0,1,0,1,0,8,0,6,0
+wisard_lossy,wisard,intermittent,1,0.8899,0,2.664e+04,0,2.642e+04,0,4.701e+04,0,3.758,0,3.752,0,4.504,0,3.076e+04,0,6.462e+04,0,0.009322,0,0.3397,0,0.4,0,0.007663,0,0.05405,0,0.1439,0,0.4,0,0.007663,0,0.05405,0,1,0,1,0,1,0,1,0,5,0,2,0
+sard,sard,normal,1,1.691,0,463.2,0,463.3,0,522.5,0,3.068,0,3.087,0,3.8,0,9.421e+05,0,1.071e+06,0,0.06588,0,0.9613,0,0.9345,0,0.1624,0,0.5925,0,0.2753,0,0.9345,0,0.1624,0,0.5925,0,,,,,,,,,168,0,157,0
+sard_lossy,sard,intermittent,1,0.258,0,3.584e+04,0,3.264e+04,0,7.785e+04,0,3.559,0,3.509,0,4.245,0,2.139e+05,0,2.888e+05,0,0.01496,0,0.9894,0,0.9762,0,0.0424,0,0.1553,0,0.2692,0,0.9762,0,0.0424,0,0.1553,0,,,,,,,,,42,0,41,0
 
 "2.1.3.2 cliped, text prompt ""person"", learning"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,1.001,0,5341,0,1854,0,1.856e+04,0,5.449,0,5.261,0,7.317,0,1.758e+05,0,2.394e+05,0,0.01628,0,0.5187,0,0.6456,0,0.1099,0,1,0,0.08249,0,0.9623,0,0.1099,0,1,0,2,0,2,0,1,0,1,0,79,0,51,0
+parkinglot_lossy,parkinglot,intermittent,1,0.3126,0,3.147e+04,0,3.258e+04,0,6.67e+04,0,4.723,0,4.574,0,6.285,0,1.386e+05,0,2.07e+05,0,0.01284,0,0.2474,0,0.3333,0,0.05388,0,0.5435,0,0.07856,0,0.9231,0,0.05172,0,0.5217,0,1,0,2,0,0.5,0,0.5,0,75,0,25,0
+traintrack,traintrack,normal,1,0.8757,0,3837,0,1714,0,1.144e+04,0,5.2,0,5.157,0,6.271,0,1.516e+06,0,1.716e+06,0,0.1279,0,0.7214,0,0.4806,0,0.08356,0,0.7654,0,0.08748,0,0.8548,0,0.07143,0,0.6543,0,2,0,2,0,1,0,1,0,129,0,62,0
+traintrack_lossy,traintrack,intermittent,1,0.0908,0,4.447e+04,0,5.146e+04,0,1.025e+05,0,4.65,0,4.561,0,6.019,0,1.671e+05,0,2.717e+05,0,0.0141,0,0.4556,0,0.2308,0,0.01213,0,0.1125,0,0.08345,0,0.8182,0,0.01213,0,0.1125,0,2,0,2,0,1,0,1,0,39,0,9,0
+street,street,normal,1,1.354,0,3051,0,1685,0,9215,0,5.126,0,5.236,0,6.13,0,1.106e+06,0,1.252e+06,0,0.08692,0,0.7467,0,0.6288,0,0.08043,0,0.7281,0,0.0933,0,0.9091,0,0.06783,0,0.614,0,2,0,2,0,1,0,1,0,132,0,83,0
+street_lossy,street,intermittent,1,0.1051,0,2.321e+04,0,9194,0,8.546e+04,0,4.771,0,4.677,0,6.272,0,1.35e+05,0,2.014e+05,0,0.01061,0,0.4874,0,0.3611,0,0.0126,0,0.1182,0,0.0893,0,1,0,0.0126,0,0.1182,0,2,0,2,0,1,0,1,0,36,0,13,0
+wisard,wisard,normal,1,1.196,0,1650,0,1225,0,2968,0,3.861,0,3.759,0,4.9,0,1.268e+05,0,3.004e+05,0,0.03841,0,0.5569,0,0.6,0,0.03448,0,0.1837,0,0.1894,0,1,0,0.02299,0,0.1224,0,1,0,1,0,1,0,1,0,15,0,9,0
+wisard_lossy,wisard,intermittent,1,0.1406,0,2.209e+04,0,1.395e+04,0,5.275e+04,0,3.578,0,3.714,0,4.603,0,1.011e+05,0,1.332e+05,0,0.03064,0,0.7319,0,0.6471,0,0.04215,0,0.3056,0,0.1402,0,1,0,0.03831,0,0.2778,0,1,0,1,0,1,0,1,0,17,0,11,0
+sard,sard,normal,1,1.582,0,4941,0,1498,0,2.355e+04,0,3.601,0,3.559,0,4.337,0,3.09e+06,0,3.416e+06,0,0.2161,0,0.6798,0,0.6532,0,0.2006,0,0.7293,0,0.2675,0,0.891,0,0.1437,0,0.5226,0,,,,,,,,,297,0,194,0
+sard_lossy,sard,intermittent,1,0.1728,0,7.622e+04,0,6.471e+04,0,1.416e+05,0,3.12,0,3.14,0,4.142,0,1.953e+05,0,2.833e+05,0,0.01365,0,0.9311,0,0.8333,0,0.03102,0,0.1261,0,0.2378,0,1,0,0.02896,0,0.1176,0,,,,,,,,,36,0,30,0
 
 "2.1.3.3 cliped, image prompt mannequin.jpeg, no learning"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,1.768,0,394.4,0,389.8,0,430,0,5.079,0,5.074,0,6.464,0,1.784e+05,0,2.348e+05,0,0.01653,0,0.1912,0,0.24,0,0.06993,0,0.6383,0,0.09376,0,0.24,0,0.06993,0,0.6383,0,1,0,1,0,1,0,1,0,125,0,30,0
+parkinglot_lossy,parkinglot,intermittent,1,1.12,0,4.309e+04,0,4.163e+04,0,9.637e+04,0,4.274,0,4.312,0,5.649,0,1.337e+05,0,2.474e+05,0,0.01238,0,0.08307,0,0.1316,0,0.02331,0,0.7143,0,0.07151,0,0.1316,0,0.02331,0,0.7143,0,1,0,1,0,1,0,1,0,76,0,10,0
+traintrack,traintrack,normal,1,1.796,0,415.2,0,408.9,0,466,0,5.133,0,5.103,0,6.145,0,9.296e+05,0,1.026e+06,0,0.07842,0,0.5197,0,0.3776,0,0.07278,0,0.675,0,0.09357,0,0.3776,0,0.07278,0,0.675,0,2,0,2,0,1,0,1,0,143,0,54,0
+traintrack_lossy,traintrack,intermittent,1,0.1216,0,3.105e+04,0,2.045e+04,0,9.215e+04,0,4.642,0,4.536,0,5.936,0,7.2e+04,0,2.038e+05,0,0.006074,0,0.2464,0,0.1875,0,0.004043,0,0.0375,0,0.0902,0,0.1875,0,0.004043,0,0.0375,0,1,0,2,0,0.5,0,0.5,0,16,0,3,0
+street,street,normal,1,1.969,0,403.2,0,399.5,0,446.5,0,5.002,0,4.912,0,6.288,0,5.632e+05,0,6.788e+05,0,0.04426,0,0.1439,0,0.1321,0,0.03382,0,0.3088,0,0.09524,0,0.1321,0,0.03382,0,0.3088,0,2,0,2,0,1,0,1,0,159,0,21,0
+street_lossy,street,intermittent,1,0.6355,0,4.699e+04,0,4.932e+04,0,9.693e+04,0,4.647,0,4.572,0,5.871,0,2.351e+05,0,3.1e+05,0,0.01848,0,0.109,0,0.1132,0,0.009662,0,0.08955,0,0.09347,0,0.1132,0,0.009662,0,0.08955,0,1,0,2,0,0.5,0,0.5,0,53,0,6,0
 
 "2.1.3.4 cliped, image prompt mannequin.jpeg, learning"
-(no runs yet)
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+parkinglot,parkinglot,normal,1,0.5272,0,3967,0,1835,0,1.224e+04,0,5.125,0,5.126,0,6.134,0,3.971e+05,0,5.194e+05,0,0.03679,0,0.1528,0,0.1824,0,0.0676,0,0.617,0,0.09147,0,0.6364,0,0.04895,0,0.4468,0,1,0,1,0,1,0,1,0,159,0,29,0
+parkinglot_lossy,parkinglot,intermittent,1,0.04911,0,5.178e+04,0,4.597e+04,0,1.058e+05,0,4.538,0,4.381,0,5.89,0,1.106e+05,0,2.034e+05,0,0.01025,0,0.02603,0,0.03125,0,0.004662,0,0.04348,0,0.09073,0,0.1429,0,0.002331,0,0.02174,0,1,0,1,0,1,0,1,0,64,0,2,0
+traintrack,traintrack,normal,1,0.9815,0,6195,0,3908,0,1.655e+04,0,5.161,0,5.084,0,6.287,0,2.432e+06,0,2.718e+06,0,0.2052,0,0.4616,0,0.3452,0,0.09164,0,0.8608,0,0.09351,0,0.7606,0,0.07278,0,0.6835,0,2,0,2,0,1,0,1,0,197,0,68,0
+traintrack_lossy,traintrack,intermittent,1,0.1591,0,4.251e+04,0,3.938e+04,0,6.115e+04,0,4.695,0,4.606,0,6.038,0,1.1e+05,0,2.34e+05,0,0.009283,0,0.8281,0,0.5333,0,0.01078,0,0.09877,0,0.09248,0,1,0,0.009434,0,0.08642,0,1,0,2,0,0.5,0,0.5,0,15,0,8,0
+street,street,normal,1,0.3566,0,3397,0,2067,0,8837,0,5.095,0,5.077,0,6.351,0,1.03e+06,0,1.189e+06,0,0.08096,0,0.05717,0,0.04147,0,0.01449,0,0.1343,0,0.09579,0,0.1923,0,0.008052,0,0.07463,0,2,0,2,0,1,0,1,0,217,0,9,0
+street_lossy,street,intermittent,1,0.1676,0,3.462e+04,0,3.843e+04,0,7.554e+04,0,4.687,0,4.533,0,5.985,0,2.307e+05,0,3.15e+05,0,0.01813,0,0.1417,0,0.1194,0,0.01288,0,0.1194,0,0.09258,0,0.381,0,0.01288,0,0.1194,0,2,0,2,0,1,0,1,0,67,0,8,0
 
-"2.1.3.5 cliped, image prompt onager.webp, learning, MMLA"
-(no runs yet)
+"2.1.3.5 cliped, image prompt dog.jpg, no learning, MMLA"
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+mmla,mmla,normal,1,1.468,0,473.1,0,474.3,0,541.5,0,3.299,0,3.264,0,3.968,0,2.646e+06,0,2.963e+06,0,0.05291,0,0.1656,0,0.08231,0,0.235,0,0.7833,0,0.2936,0,0.08231,0,0.235,0,0.7833,0,4,0,4,0,1,0,1,0,571,0,47,0
+mmla_lossy,mmla,intermittent,1,0.2076,0,7.526e+04,0,6.304e+04,0,2.197e+05,0,3.318,0,3.218,0,4.429,0,4.643e+05,0,6.563e+05,0,0.009287,0,0.3236,0,0.1778,0,0.08,0,0.2623,0,0.2925,0,0.1778,0,0.08,0,0.2623,0,2,0,4,0,0.5,0,0.5,0,90,0,16,0
+
+"2.1.3.6 cliped, text prompt ""African wild dog"", no learning, MMLA"
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+mmla,mmla,normal,1,2.266,0,472.4,0,471.9,0,546.8,0,3.357,0,3.354,0,4.065,0,3.828e+06,0,4.299e+06,0,0.07657,0,0.117,0,0.05549,0,0.24,0,0.8136,0,0.29,0,0.05549,0,0.24,0,0.8136,0,4,0,4,0,1,0,1,0,865,0,48,0
+mmla_lossy,mmla,intermittent,1,0.31,0,7.416e+04,0,4.987e+04,0,2.45e+05,0,3.289,0,3.149,0,4.732,0,7.156e+05,0,9.23e+05,0,0.01431,0,0.3439,0,0.188,0,0.125,0,0.4167,0,0.2893,0,0.188,0,0.125,0,0.4167,0,4,0,4,0,1,0,1,0,133,0,25,0
+
+"2.1.3.7 cliped, image prompt dog.jpg, learning, MMLA"
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+mmla,mmla,normal,1,0.6339,0,1.948e+04,0,1779,0,9.968e+04,0,3.527,0,3.508,0,4.08,0,8.857e+06,0,9.823e+06,0,0.1771,0,0.1105,0,0.05093,0,0.3,0,1,0,0.2964,0,0.1951,0,0.24,0,0.8,0,4,0,4,0,1,0,1,0,1178,0,60,0
+mmla_lossy,mmla,intermittent,1,0.1153,0,8.117e+04,0,6.908e+04,0,1.595e+05,0,3.421,0,3.338,0,4.549,0,4.179e+05,0,6.435e+05,0,0.008358,0,0.925,0,0.8182,0,0.18,0,0.6102,0,0.2918,0,1,0,0.17,0,0.5763,0,4,0,4,0,1,0,1,0,44,0,36,0
+
+"2.1.3.8 cliped, text prompt ""African wild dog"", learning, MMLA"
+experiment,source,profile,trials,throughput_fps,throughput_fps_sd,latency_mean_ms,latency_mean_ms_sd,latency_median_ms,latency_median_ms_sd,latency_p95_ms,latency_p95_ms_sd,power_mean_w,power_mean_w_sd,power_median_w,power_median_w_sd,power_p95_w,power_p95_w_sd,bytes,bytes_sd,netsim_bytes,netsim_bytes_sd,frac_1mbps,frac_1mbps_sd,uot,uot_sd,precision,precision_sd,recall,recall_sd,effective_recall,effective_recall_sd,processed_frac,processed_frac_sd,verified_precision,verified_precision_sd,verified_recall,verified_recall_sd,verified_effective_recall,verified_effective_recall_sd,occurrences_found,occurrences_found_sd,occurrences,occurrences_sd,occurrence_recall,occurrence_recall_sd,verified_occurrence_recall,verified_occurrence_recall_sd,items,items_sd,tp_items,tp_items_sd
+mmla,mmla,normal,1,0.275,0,2157,0,1333,0,5562,0,3.413,0,3.378,0,4.178,0,1.105e+06,0,1.269e+06,0,0.02209,0,0.883,0,0.7895,0,0.3,0,0.9836,0,0.2908,0,1,0,0.285,0,0.9344,0,4,0,4,0,1,0,1,0,76,0,60,0
+mmla_lossy,mmla,intermittent,1,0.1386,0,1.258e+05,0,1.247e+05,0,2.303e+05,0,3.353,0,3.271,0,4.424,0,6.847e+05,0,7.974e+05,0,0.01369,0,0.7161,0,0.5325,0,0.205,0,0.7069,0,0.2883,0,1,0,0.21,0,0.7241,0,3,0,4,0,0.75,0,0.75,0,77,0,41,0
 

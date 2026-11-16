@@ -32,7 +32,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/rescale@v4
 [services.plugin.args]
 resolution = "720p"
 
-# CLIP edge filter, learning off; logs each frame scored and each tile queued
+# CLIP edge filter, learning off; a tile is queued until webp_decoder has it; logs each frame scored and each tile queued
 [[services]]
 name = "cliped"
 type = "engine"
@@ -41,12 +41,11 @@ plugin = "cliped"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
 [services.plugin.args]
 prompt = "person"
-verifier = "verifier"
+verifier = "webp_decoder"
 learn = false
 log_sent = "mb/sent.csv"
 log_scored = "mb/scored.csv"
 max_queue = 512
-resend_after_ms = 30000
 
 # WebP at quality 65
 [[services]]

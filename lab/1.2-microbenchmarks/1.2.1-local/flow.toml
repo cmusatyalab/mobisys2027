@@ -3,6 +3,7 @@
 
 [[producers]]
 name = "vehicle.rgb"
+tokens = 1
 
 [[engines]]
 name = "local.yolo"

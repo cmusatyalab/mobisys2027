@@ -3,6 +3,7 @@
 
 [[producers]]
 name = "vehicle.rgb"
+tokens = 1
 
 [[engines]]
 name = "local.yolo"
@@ -42,9 +43,9 @@ timeout = "2s"
 [[edges]]
 from = "local.webp_encoder"
 to = "remote.rx_metrics"
-timeout = "5s"
+timeout = "30s"
 
 [[edges]]
 from = "remote.rx_metrics"
 to = "remote.webp_decoder"
-timeout = "5s"
+timeout = "30s"

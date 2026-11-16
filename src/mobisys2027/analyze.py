@@ -4,7 +4,8 @@
     uv run analyze --quality FILE  # 1.1-quality's numbers from elsewhere
 
 It writes, in each top-level section's lab/<section>/results/ (1.1's figures
-come from lab/1.1-quality/results/1.1-quality.csv, the numbers of the sheet):
+come from lab/1.1-quality/results/1.1-quality.csv and 1.1-latency.csv, the
+numbers of the sheet):
 
 - one CSV per top-level section of the plan (1.1-quality.csv,
   1.2-microbenchmarks.csv, 2.1-search.csv), each a tab of the sheet, with
@@ -30,8 +31,8 @@ standard deviation in the _sd columns):
   (labels/<source>.json) for which one did. A crop or tile holds a target
   if it covers at least OVERLAP of the target's box, or the target covers
   that much of it. Which classes are targets depends on the experiment
-  (lab.py's targets: anyone for YOLO and "person", only the mannequin or the
-  onager for an image prompt);
+  (lab.py's targets: anyone for YOLO and "person", only the mannequin for
+  its image prompt, only the painted dog on MMLA);
 - verified_precision and verified_recall: the same for what the verifier on
   lambda2 passed on (sink_metrics), when there is one;
 - effective_recall (and verified_effective_recall): recall over only the
@@ -42,7 +43,13 @@ standard deviation in the _sd columns):
   never got to, queued behind a slow one, is unseen too. The gap between recall and
   effective_recall is the targets the pipeline never saw; what
   effective_recall misses, it saw and lost (filtered out, or lost on the way);
-- processed_frac: the share of the source's frames the pipeline took in.
+- processed_frac: the share of the source's frames the pipeline took in;
+- occurrences_found, of occurrences, and occurrence_recall (and
+  verified_occurrence_recall): on the videos and frame sequences
+  (OCCURRENCE_SOURCES), targets show up in runs of consecutive frames. Each
+  run, merging gaps of up to OCCURRENCE_GAP_S, is one occurrence; it is
+  found if a frame, crop or tile holding a target reached lambda2 from any
+  frame of it.
 """
 
 from __future__ import annotations
@@ -197,6 +204,26 @@ def holds_target(item: Item, labels: L.Labels, targets) -> bool:
     return any(L.overlap(item.box, b[1:]) >= OVERLAP for b in boxes)
 
 
+# Sources whose frames are consecutive, so a target shows up as a run of frames
+OCCURRENCE_SOURCES = {"parkinglot", "traintrack", "street", "wisard", "mmla"}
+# Gaps in a run up to this long (a target briefly occluded, or missed by the
+# labels) don't split it into two occurrences
+OCCURRENCE_GAP_S = 1.0
+
+
+def occurrences(labels: L.Labels, targets) -> list[tuple[int, int]]:
+    """The runs of frames holding one of `targets`, as (first, last), with
+    gaps of up to OCCURRENCE_GAP_S merged."""
+    gap = max(1, round(OCCURRENCE_GAP_S * (labels.fps or 1)))
+    runs: list[list[int]] = []
+    for f in sorted(f for f, bs in labels.boxes.items() if any(b[0] in targets for b in bs)):
+        if runs and f - runs[-1][1] <= gap + 1:
+            runs[-1][1] = f
+        else:
+            runs.append([f, f])
+    return [(a, b) for a, b in runs]
+
+
 def score(items: list[Item], labels: L.Labels | None, targets, processed: set[int] | None = None) -> dict:
     """precision, recall and uot of `items`, each distinct one once; with
     `processed` (the source frames the pipeline took in), effective_recall:
@@ -214,7 +241,13 @@ def score(items: list[Item], labels: L.Labels | None, targets, processed: set[in
     found = {it.frame for it, hit in zip(uniq, hits) if hit}
     total = sum(it.bytes for it in uniq)
     seen_targets = target_frames & processed if processed else set()
-    return {
+    occ = {}
+    if Path(labels.source).stem in OCCURRENCE_SOURCES:
+        runs = occurrences(labels, targets)
+        hit = sum(any(a <= f <= b for f in found) for a, b in runs)
+        occ = {"occurrences_found": hit, "occurrences": len(runs),
+               "occurrence_recall": hit / len(runs) if runs else math.nan}
+    return occ | {
         "effective_recall": len(found & seen_targets) / len(seen_targets) if seen_targets else math.nan,
         "precision": sum(hits) / len(uniq) if uniq else math.nan,
         "recall": len(found & target_frames) / len(target_frames) if target_frames else math.nan,
@@ -249,11 +282,16 @@ def trial_metrics(trial: Trial, labels: L.Labels | None, targets, video_s: float
         if video_s:
             m["frac_1mbps"] = m["bytes"] / (MBPS_BYTES * video_s)
         m |= score(rx, labels, targets, trial.processed)
+    elif find(trial.path, "rx.csv"):
+        # lambda2 logged, and nothing arrived: found nothing (recall 0), not unscored
+        m |= score([], labels, targets, trial.processed)
     if sink and rx:
         v = score(sink, labels, targets, trial.processed)
         if v:
             m["verified_precision"], m["verified_recall"] = v["precision"], v["recall"]
             m["verified_effective_recall"] = v["effective_recall"]
+            if "occurrence_recall" in v:
+                m["verified_occurrence_recall"] = v["occurrence_recall"]
     if trial.played:
         m["processed_frac"] = len(trial.processed & trial.played) / len(trial.played)
     stats = read_csv(next(trial.path.parent.glob("stats_*.csv"), Path("-")))
@@ -281,7 +319,8 @@ COLUMNS = ["throughput_fps", "latency_mean_ms", "latency_median_ms", "latency_p9
            "local_throughput_fps", "local_latency_mean_ms", "local_latency_p95_ms",
            "power_mean_w", "power_median_w", "power_p95_w", "bytes", "netsim_bytes", "frac_1mbps", "uot",
            "precision", "recall", "effective_recall", "processed_frac", "verified_precision", "verified_recall",
-           "verified_effective_recall", "items", "tp_items"]
+           "verified_effective_recall", "occurrences_found", "occurrences", "occurrence_recall",
+           "verified_occurrence_recall", "items", "tp_items"]
 
 
 def collect(d: LAB.Dir) -> list[Row]:
@@ -360,8 +399,9 @@ COLUMN_W = 3.4  # inches: one column of a two-column paper
 
 
 def pgf_line_chart(title, xlabel, ylabel, series: dict[str, list[tuple]], *, xdir_reverse=False, ymin=None,
-                   ymax=None, xtick_labels=None) -> str:
-    """A pgfplots line chart of `series` (name -> [(x, y)])."""
+                   ymax=None, xtick_labels=None, hlines=()) -> str:
+    """A pgfplots line chart of `series` (name -> [(x, y)]), with `hlines`
+    ([(name, y)]) as dashed red reference lines across it."""
     opts = [f"title={{{title}}}" if title else None, f"xlabel={{{xlabel}}}", f"ylabel={{{ylabel}}}",
             "width=\\columnwidth", "height=0.62\\columnwidth", "grid=major", "legend pos=south west",
             "x dir=reverse" if xdir_reverse else None,
@@ -374,6 +414,10 @@ def pgf_line_chart(title, xlabel, ylabel, series: dict[str, list[tuple]], *, xdi
     for name, pts in series.items():
         coords = " ".join(f"({x:g},{y:g})" for x, y in pts if not math.isnan(y))
         lines += [f"\\addplot+[mark=*, thick] coordinates {{{coords}}};", f"\\addlegendentry{{{name}}}"]
+    xs = [x for pts in series.values() for x, _ in pts]
+    for name, y in hlines:
+        lines += [f"\\addplot[red, dashed, thick, domain={min(xs):g}:{max(xs):g}, samples=2] {{{y:g}}};",
+                  f"\\addlegendentry{{{name}}}"]
     lines += ["\\end{axis}", "\\end{tikzpicture}", ""]
     return "\n".join(lines)
 
@@ -382,9 +426,11 @@ def quality_figures(path: Path) -> list[Path]:
     """1.1.1: mAP 50-95 against QP, and against resolution (high to low), for
     each model, from the 1.1-quality numbers. The CSV has columns model,
     axis ("qp" or "resolution"), value (the QP, or the resolution's height),
-    map (mAP 50-95)."""
+    map (mAP 50-95). Rows with axis "reference" (e.g. YOLO S-Quantized at
+    its own input) are drawn on both as a dashed red horizontal line."""
     plt = setup_matplotlib()
     rows = read_csv(path)
+    refs = [(r["model"].strip(), float(r["map"])) for r in rows if r["axis"].strip().lower() == "reference"]
     out = []
     for axis, xlabel, reverse in (("qp", "QP", False), ("resolution", "Resolution (p)", True)):
         series: dict[str, list] = {}
@@ -398,6 +444,11 @@ def quality_figures(path: Path) -> list[Path]:
         fig, ax = plt.subplots(figsize=(COLUMN_W, COLUMN_W * 0.62))
         for name, pts in series.items():
             ax.plot([x for x, _ in pts], [y for _, y in pts], marker="o", ms=3, label=name)
+        for name, y in refs:
+            ax.axhline(y, color="red", ls="--", lw=1, label=name)
+        if refs:  # axhline doesn't widen the axis, so make room for the lines
+            low = min([y for _, y in refs] + [y for pts in series.values() for _, y in pts])
+            ax.set_ylim(bottom=low - 0.03)
         ax.set_xlabel(xlabel)
         ax.set_ylabel("mAP 50-95")
         if reverse:
@@ -407,7 +458,58 @@ def quality_figures(path: Path) -> list[Path]:
         name = f"1.1.1-map-vs-{axis}"
         fig.savefig(fig_path(name, "pdf"))
         plt.close(fig)
-        (fig_path(name, "tex")).write_text(pgf_line_chart("", xlabel, "mAP 50-95", series, xdir_reverse=reverse))
+        (fig_path(name, "tex")).write_text(pgf_line_chart("", xlabel, "mAP 50-95", series, xdir_reverse=reverse,
+                                                          hlines=refs))
+        out.append(fig_path(name, "pdf"))
+    return out
+
+
+# 1.1.2: each CDF's column of 1.1-latency.csv (columns K-P of the sheet's 1.1 tab), and its figure's name and label
+LATENCY_CDFS = (("fermi_to_c33_ms", "1.1.2-latency-cdf-fermi-to-cloudlet", "fermi to cloudlet latency (ms)"),
+                ("led_to_fermi_ms", "1.1.2-latency-cdf-drone-to-fermi", "drone to fermi latency (ms)"),
+                ("led_to_c33_ms", "1.1.2-latency-cdf-drone-to-cloudlet", "drone to cloudlet latency (ms)"))
+# Points in a CDF's pgfplots version (the PDF draws every sample)
+CDF_TEX_POINTS = 200
+
+
+def latency_figures(path: Path) -> list[Path]:
+    """1.1.2: the CDF of the uriel stream's latency per frame, fermi to the
+    cloudlet, drone to fermi and drone to cloudlet (end to end), each with
+    its p95 marked. The CSV is the
+    1.1 tab's columns K-P: seq, time_s, led_to_c33_ms, led_to_fermi_ms,
+    fermi_to_c33_ms, confidence."""
+    plt = setup_matplotlib()
+    rows = read_csv(path)
+    out = []
+    for column, name, xlabel in LATENCY_CDFS:
+        v = sorted(float(r[column]) for r in rows if r.get(column, "").strip())
+        if not v:
+            continue
+        ys = [(i + 1) / len(v) for i in range(len(v))]
+        p95 = pct(v, 0.95)
+        fig, ax = plt.subplots(figsize=(COLUMN_W, COLUMN_W * 0.62))
+        ax.plot(v, ys, lw=1.2)
+        ax.axvline(p95, color="red", ls="--", lw=1)
+        ax.annotate(f"p95 = {p95:.0f} ms", (p95, 0.5), xytext=(4, 0), textcoords="offset points", color="red",
+                    fontsize=7, va="center")
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel("CDF")
+        ax.set_ylim(0, 1.02)
+        ax.grid(alpha=0.3)
+        fig.savefig(fig_path(name, "pdf"))
+        plt.close(fig)
+        step = max(1, len(v) // CDF_TEX_POINTS)
+        pts = [(v[i], ys[i]) for i in range(0, len(v), step)] + [(v[-1], 1.0)]
+        coords = " ".join(f"({x:g},{y:.4f})" for x, y in pts)
+        (fig_path(name, "tex")).write_text("\n".join([
+            "% Generated by `uv run analyze`; needs \\usepackage{pgfplots}",
+            "\\begin{tikzpicture}",
+            f"\\begin{{axis}}[xlabel={{{xlabel}}}, ylabel={{CDF}}, width=\\columnwidth, height=0.62\\columnwidth, "
+            "grid=major, ymin=0, ymax=1.02]",
+            f"\\addplot[thick, blue] coordinates {{{coords}}};",
+            f"\\draw[red, dashed, thick] (axis cs:{p95:g},0) -- (axis cs:{p95:g},1.02);",
+            f"\\node[red, anchor=west, font=\\footnotesize] at (axis cs:{p95:g},0.5) {{p95 = {p95:.0f} ms}};",
+            "\\end{axis}", "\\end{tikzpicture}", ""]))
         out.append(fig_path(name, "pdf"))
     return out
 
@@ -486,7 +588,7 @@ def recall_curve_tex(pts) -> str:
     ])
 
 
-def profile_bar_figures(d: LAB.Dir, rows: list[Row], metrics=("recall", "effective_recall", "precision", "uot", "frac_1mbps")) -> list[Path]:
+def profile_bar_figures(d: LAB.Dir, rows: list[Row], metrics=("recall", "effective_recall", "occurrence_recall", "precision", "uot", "frac_1mbps")) -> list[Path]:
     """For a search subsection: each metric by profile, a group of bars per
     source."""
     plt = setup_matplotlib()
@@ -508,7 +610,7 @@ def profile_bar_figures(d: LAB.Dir, rows: list[Row], metrics=("recall", "effecti
             ys = [data[s].get(p, (math.nan, 0))[0] for s in sources]
             es = [data[s].get(p, (0, 0))[1] for s in sources]
             ax.bar(xs, ys, width, yerr=es, label=p, capsize=1.5, error_kw={"lw": 0.6})
-        ax.set_xticks(range(len(sources)), sources)
+        ax.set_xticks(range(len(sources)), sources, rotation=20, ha="right", rotation_mode="anchor")
         ax.set_ylabel(metric.replace("_", " "))
         ax.legend(ncol=min(5, len(profiles)), fontsize=6, frameon=False, loc="upper center",
                   bbox_to_anchor=(0.5, 1.18))
@@ -569,8 +671,11 @@ def micro_figures(rows: list[Row]) -> list[Path]:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--quality", type=Path, default=results_dir("1.1-quality") / "1.1-quality.csv",
-                        help="1.1-quality's numbers: CSV with model, axis (qp|resolution), value, map "
+                        help="1.1-quality's numbers: CSV with model, axis (qp|resolution|reference), value, map "
                              "(default %(default)s)")
+    parser.add_argument("--latency", type=Path, default=results_dir("1.1-quality") / "1.1-latency.csv",
+                        help="1.1.2's per-frame uriel stream latencies (the 1.1 tab's columns K-P; "
+                             "default %(default)s)")
     parser.add_argument("--no-figs", action="store_true")
     args = parser.parse_args(argv)
 
@@ -583,6 +688,8 @@ def main(argv=None):
     if not args.no_figs:
         if args.quality.is_file():
             written += quality_figures(args.quality)
+        if args.latency.is_file():
+            written += latency_figures(args.latency)
         else:
             print(f"no {args.quality}: skipping the 1.1.1 figures")
         written += micro_figures([r for d in dirs if d.path.startswith("1.2") for r in rows_by_dir[d.path]])

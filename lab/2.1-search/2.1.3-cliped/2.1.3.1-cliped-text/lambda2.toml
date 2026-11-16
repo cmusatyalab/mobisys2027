@@ -24,16 +24,6 @@ type = "engine"
 plugin = "webp_decoder"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
 
-# The VLM (Ollama) that answers each tile, which cliped learns from
-[[services]]
-name = "verifier"
-type = "engine"
-[services.plugin]
-plugin = "verifier"
-package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
-[services.plugin.args]
-prompt = "person"
-
 # Logs each frame reaching the end of the pipeline
 [[services]]
 name = "sink_metrics"
