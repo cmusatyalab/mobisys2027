@@ -1,0 +1,47 @@
+[[producers]]
+name = "steppeeagle.telemetry"
+tokens = 1
+[[producers]]
+name = "steppeeagle.rgb"
+tokens = 1
+
+[[engines]]
+name = "lambda.gcs"
+location = "remote"
+[[engines]]
+name = "heisenberg.encoder"
+location = "local"
+[[engines]]
+name = "lambda.decoder"
+location = "remote"
+[[engines]]
+name = "lambda.detection"
+location = "remote"
+[[engines]]
+name = "lambda.detection_log"
+location = "remote"
+
+[[edges]]
+from = "steppeeagle.telemetry"
+to = "lambda.gcs"
+timeout = "1s"
+[[edges]]
+from = "steppeeagle.rgb"
+to = "heisenberg.encoder"
+timeout = "1s"
+[[edges]]
+from = "heisenberg.encoder"
+to = "lambda.gcs"
+timeout = "1s"
+[[edges]]
+from = "lambda.decoder"
+to = "lambda.detection"
+timeout = "1s"
+[[edges]]
+from = "lambda.detection"
+to = "lambda.detection_log"
+timeout = "1s"
+[[edges]]
+from = "heisenberg.encoder"
+to = "lambda.decoder"
+timeout = "1s"
