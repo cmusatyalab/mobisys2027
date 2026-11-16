@@ -6,7 +6,9 @@ name = "onboard_track" # Unique; names the runs and the daemon configs (below)
 vehicle = "" # Vehicle name to target
 # Can set one of mission or video
 [experiments.mission]
-# If set, will upload and send this mission to start experiment
+# If set, will upload and send this mission to start experiment: a mission
+# binary, or a folder holding flow.toml and mission.json, which is compiled on
+# the vehicle (CompileMission) under the folder's name
 file = ""
 # If true, the mission is not pushed: it is assumed to already be in every
 # daemon's missions directory under its own name, and need not be in the

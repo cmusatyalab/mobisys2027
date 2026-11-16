@@ -21,8 +21,10 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
   1. restarts the daemons with the experiment's configs for the profile,
   2. for the ambient profile only: stops the vehicle, measures the link from
      its host with iperf3 (the trial's bandwidth timeline), and restarts it,
-  3. starts the mission (upload, load, start) or sets the video's flow on the
-     target vehicle, and starts netsim as soon as the vehicle acknowledges it
+  3. starts the mission (upload, or CompileMission for a mission folder holding
+     flow.toml and mission.json; then load and start; if StartMission fails, the
+     daemons get their own configs back and the run aborts) or sets the video's
+     flow on the target vehicle, and starts netsim as soon as the vehicle acknowledges it
      (not for none or ambient, which run unattenuated), along with the power
      script (power/tachyon_power.py) on every remote daemon's host, over ssh,
   4. waits for the duration (for a video, the video's length unless a
@@ -99,6 +101,10 @@ from steeleagle_protocol.v1.services.vehicle import (
 )
 
 EXPERIMENT_FILE = "experiment.toml"
+# A mission folder (mission.file naming a directory) holds these, and is
+# compiled on the vehicle (CompileMission) instead of uploaded as a binary
+MISSION_FLOW = "flow.toml"
+MISSION_JSON = "mission.json"
 VIDEOS_DIR = "videos"  # looked for at and above the experiment directory, before it
 # Images and other media the experiments upload (e.g. a prompt image), looked for like videos/
 MEDIA_DIR = "media"
@@ -333,7 +339,9 @@ def close_ssh() -> None:
 @dataclass
 class Phase:
     kind: str  # "mission" or "video"
-    file: Path  # the mission, or the video's flow
+    # the mission (a binary, or a folder with MISSION_FLOW and MISSION_JSON,
+    # compiled on the vehicle), or the video's flow
+    file: Path
     auto: bool
     # seconds to run each trial; 0 waits for ENTER. For a video with no
     # duration set, the video's own length (duration_from_video)
@@ -654,7 +662,13 @@ def parse_experiment(
             # Not pushed, so it need not exist here; only its name is used
             mission = exp_dir / file_name("mission.file (with no_upload)", sect["file"])
         else:
-            mission = exp_file("mission.file", sect["file"])
+            mission = exp_dir / sect["file"]
+            if mission.is_dir():
+                for part in (MISSION_FLOW, MISSION_JSON):
+                    if not (mission / part).is_file():
+                        raise ValueError(f"{where}: mission folder {mission} has no {part}")
+            else:
+                mission = exp_file("mission.file", sect["file"])
         phases.append(Phase(
             "mission", mission, flag(sect, "mission.auto"),
             duration("mission", sect) or 0.0, no_upload=no_upload,
@@ -1029,6 +1043,20 @@ class Daemon:
         self._send_chunks(
             self.transfer.TransferFile, transfer_pb2.TransferFileRequest,
             path, route, "file transfer", None, filename=name,
+        )
+
+    def compile_mission(self, folder: Path, route: str) -> None:
+        """Compiles a mission folder's flow and JSON mission on the vehicle,
+        saved there under the folder's name. Compiling can be slow, so it gets
+        the install deadline."""
+        self.loader.CompileMission(
+            upload_pb2.CompileMissionRequest(
+                name=folder.name,
+                flow=(folder / MISSION_FLOW).read_bytes(),
+                mission=(folder / MISSION_JSON).read_bytes(),
+                json=True,
+            ),
+            metadata=self.route(route), timeout=INSTALL_TIMEOUT,
         )
 
     def load_mission(self, name: str, route: str) -> None:
@@ -2250,6 +2278,9 @@ def run_trial(
     if phase.kind == "mission":
         if phase.no_upload:
             log(f"loading {phase.file.name} on {vehicle} (not uploaded)")
+        elif phase.file.is_dir():
+            log(f"compiling and loading mission folder {phase.file.name} on {vehicle}")
+            client.compile_mission(phase.file, vehicle)
         else:
             log(f"uploading and loading {phase.file.name} on {vehicle}")
             client.upload_mission(phase.file, vehicle)
@@ -2259,12 +2290,22 @@ def run_trial(
     if not phase.auto:
         input(f"[{exp.name} {profile} {trial}/{exp.trials}] Press ENTER to start the {phase.kind}... ")
 
+    if phase.kind == "mission":
+        # Before the trial's try, so a mission that never started isn't
+        # stopped, nor its services stopped and collected: the daemons go
+        # straight back to their own configs, and the run stops
+        try:
+            client.start_mission(vehicle)
+        except grpc.RpcError as e:
+            log("Failed to start mission, aborting!")
+            log(f"StartMission: {e.code().name} {e.details()}")
+            restore_configs(client, exp)
+            raise SystemExit(1) from None
+
     wall = 0.0
     started = finished = False
     try:
-        if phase.kind == "mission":
-            client.start_mission(vehicle)
-        else:
+        if phase.kind == "video":
             client.set_dataflow(flow, vehicle)
         started = True
         netsim.start()
