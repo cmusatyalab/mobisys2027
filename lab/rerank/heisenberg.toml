@@ -67,3 +67,17 @@ plugin = "webp_encoder"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
 [services.plugin.args]
 quality = 80
+
+# Logs the box box_rerank reports on each frame it decides, and when, for
+# precision, recall, throughput and latency; no images, so it costs the frame
+# path nothing
+[[services]]
+name = "detection_log"
+type = "engine"
+[services.plugin]
+plugin = "detection-log"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+[services.plugin.args]
+detector = "box_rerank"
+images = false
+csv = "mb/boxes.csv"

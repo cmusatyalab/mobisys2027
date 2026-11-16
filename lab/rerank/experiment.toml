@@ -1,8 +1,13 @@
-# box_rerank on the nov16 robot dog run: heisenberg replays it at 720p
-# (nov16_tracking_720p.mp4, already in its files directory) through YOLO and
-# box_rerank; the crops go to lambda's Qwen3-VL verifier under each network
-# profile. Scored offline from mb/candidates.csv: what YOLO alone would have
-# reported (its best box from 0.5) against what box_rerank reported.
+# Tracking the robot dog in the nov16 run (nov16_tracking_720p.mp4, already
+# in heisenberg's files directory), three ways, under each network profile:
+#
+# - rerank_nov16: YOLO on heisenberg's HTP, and box_rerank picking among its
+#   boxes, the crops going to lambda's Qwen3-VL verifier;
+# - yolo_nov16: onboard only, YOLO alone;
+# - rfdetr_nov16: offboard only, H.264 to lambda's RF-DETR.
+#
+# Each logs the box it reports on every frame it decides, with when, in
+# mb/boxes.csv (detection_log); scored by scripts/score_tracking.py.
 
 [[experiments]]
 name = "rerank_nov16"
@@ -14,6 +19,37 @@ auto = true
 warmup = 45  # box_rerank loads CLIP for ~30 s after it is listed as running
 duration = 63  # the clip is 62.03 s; set here as videos/ has no copy of it
 grace = 30  # for the queued crops to reach the verifier
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "yolo_nov16"
+vehicle = "drone"
+[experiments.video]
+video = "nov16_tracking_720p.mp4"
+flow = "flow_yolo.toml"
+auto = true
+duration = 63
+grace = 5
+[experiments.netsim]
+profiles = ["normal", "limited", "degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "rfdetr_nov16"
+vehicle = "drone"
+[experiments.video]
+video = "nov16_tracking_720p.mp4"
+flow = "flow_rfdetr.toml"
+auto = true
+warmup = 30  # for RF-DETR to load onto the GPU
+duration = 63
+grace = 10  # for frames still crossing to finish
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded", "intermittent"]
 interface = "tailscale0"
@@ -34,6 +70,7 @@ prefix = "root@heisenberg:"
 
 [results] # moved off the hosts after each trial
 heisenberg = "heisenberg/root/.local/share/steeleagle/files/mb/"
+lambda = "lambda/root/.local/share/steeleagle/files/mb/"  # rfdetr_nov16's boxes
 [catalogs] # copied, the sources are kept
 box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
 verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"

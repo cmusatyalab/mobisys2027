@@ -1,6 +1,6 @@
 # rgb -> detection_qnn (YOLO, low confidence) and box_rerank, which picks the
 # robot dog among YOLO's boxes, or none (a dead end: its pick is its result,
-# logged in mb/candidates.csv). box_rerank.reintegration -> webp_encoder
+# logged in mb/candidates.csv, and by detection_log in mb/boxes.csv). box_rerank.reintegration -> webp_encoder
 # ==network==> webp_decoder -> verifier (Qwen3-VL), whose yes/no box_rerank
 # learns from. Frames never wait on the network.
 
@@ -18,6 +18,10 @@ location = "local"
 
 [[engines]]
 name = "local.box_rerank"
+location = "local"
+
+[[engines]]
+name = "local.detection_log"
 location = "local"
 
 [[engines]]
@@ -40,6 +44,11 @@ timeout = "2s"
 [[edges]]
 from = "vehicle.rgb"
 to = "local.box_rerank"
+timeout = "2s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.detection_log"
 timeout = "2s"
 
 [[edges]]
