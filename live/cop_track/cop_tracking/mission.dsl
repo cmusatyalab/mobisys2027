@@ -10,7 +10,11 @@ Imports:
 
 Actions:
     actions.SetGimbalPose set_gimbal_pose_1(Pose=datatypes.Pose(Pitch=-45.0, Roll=0.0, Yaw=0.0), AngleMode=enums.AngleModeAbsolute, Frame=enums.ReferenceFrameBody)
+<<<<<<< Updated upstream:live/cop_track/cop_tracking/mission.dsl
     actions.Track track_1(Camera=params.Camera_rgb, Engine=DetectionEngine_local_cop_tracking, Class="robotic dog", LostDuration=3.0, TargetAreaRatio=0.1, YawSpeed=180.0, PitchSpeed=20.0, MoveSpeed=0.0)
+=======
+    actions.Track track_1(Camera=params.Camera_rgb, Engine=DetectionEngine_local_cop_tracking, Class="robotic dog", LostDuration=60.0, TargetAreaRatio=0.1, YawSpeed=180.0, PitchSpeed=20.0, MoveSpeed=0.0)
+>>>>>>> Stashed changes:live/cop_track/cop_tracking/misson.dsl
 
 Mission:
     Start set_gimbal_pose_1
