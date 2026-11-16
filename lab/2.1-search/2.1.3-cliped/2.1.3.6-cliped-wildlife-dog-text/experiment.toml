@@ -11,6 +11,7 @@ video = "mmla"
 flow = "flow.toml"
 auto = true
 duration = 400.0  # 4000 frames at 10 fps
+warmup = 30  # for CLIP to load before the first frame
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded"]
 interface = "tailscale0"
@@ -26,6 +27,7 @@ video = "mmla"
 flow = "flow.toml"
 auto = true
 duration = 400.0  # 4000 frames at 10 fps
+warmup = 30  # for CLIP to load before the first frame
 grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent"]

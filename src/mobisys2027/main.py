@@ -27,6 +27,8 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
      flow on the target vehicle, and starts netsim as soon as the vehicle acknowledges it
      (not for none or ambient, which run unattenuated), along with the power
      script (power/tachyon_power.py) on every remote daemon's host, over ssh,
+     (after a warmup period, if one is set, for engines that load a model once
+     they are running),
   4. waits for the duration (for a video, the video's length unless a
      duration is set), or for ENTER when the duration is 0, and then for the
      grace period, if one is set, with everything still running,
@@ -205,7 +207,7 @@ class Progress:
 
     def add(self, exp: "Experiment", n: int) -> None:
         """Counts n trials of exp to run."""
-        run = exp.phase.duration + exp.phase.grace
+        run = exp.phase.warmup + exp.phase.duration + exp.phase.grace
         self.pending += [run] * n
         self.total += n
 
@@ -370,6 +372,10 @@ class Phase:
     # seconds to keep running after the duration (or ENTER), before the trial
     # is stopped, e.g. for reintegration or reachback to finish transmitting
     grace: float = 0.0
+    # seconds to wait once the daemons report their services running, before
+    # the mission or flow starts: an engine that loads a model after it starts
+    # (e.g. CLIP) is only listed as running, and would miss the first frames
+    warmup: float = 0.0
 
 
 @dataclass
@@ -657,10 +663,10 @@ def parse_experiment(
             raise ValueError(f"{where}: {kind}.duration must be a number >= 0, not {d!r}")
         return float(d)
 
-    def grace(kind: str, sect: dict) -> float:
-        g = sect.get("grace", 0)
+    def grace(kind: str, sect: dict, key: str = "grace") -> float:
+        g = sect.get(key, 0)
         if not isinstance(g, (int, float)) or isinstance(g, bool) or g < 0:
-            raise ValueError(f"{where}: {kind}.grace must be a number >= 0, not {g!r}")
+            raise ValueError(f"{where}: {kind}.{key} must be a number >= 0, not {g!r}")
         return float(g)
 
     def file_name(key: str, value) -> str:
@@ -689,7 +695,7 @@ def parse_experiment(
         phases.append(Phase(
             "mission", mission, flag(sect, "mission.auto"),
             duration("mission", sect) or 0.0, no_upload=no_upload,
-            grace=grace("mission", sect),
+            grace=grace("mission", sect), warmup=grace("mission", sect, "warmup"),
         ))
     sect = exp.get("video", {})
     if sect.get("video") or sect.get("flow"):
@@ -736,7 +742,7 @@ def parse_experiment(
         phases.append(Phase(
             "video", flow, flag(sect, "video.auto"), d,
             video=video, no_upload=no_upload, duration_from_video=from_video,
-            grace=grace("video", sect),
+            grace=grace("video", sect), warmup=grace("video", sect, "warmup"),
         ))
     if len(phases) != 1:
         raise ValueError(f"{where}: set exactly one of mission (file) or video (video and flow)")
@@ -2414,6 +2420,9 @@ def run_experiment(
                 vehicle = client.wait_ready(exp.vehicle, exp.remotes)
                 start_stopped_services(client, exp, profile)
                 log(f"daemons ready; targeting {vehicle}")
+                if exp.phase.warmup > 0:
+                    log(f"warmup: waiting {exp.phase.warmup:g}s for the engines to load before starting")
+                    PROGRESS.sleep(exp.phase.warmup, "warmup")
                 run_trial(client, exp, vehicle, profile, run_dir, trial, deferred_before)
             finally:
                 restore_configs(client, exp)

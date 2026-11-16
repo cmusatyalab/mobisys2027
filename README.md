@@ -258,6 +258,7 @@ The other may be left out, or kept with its files set to `""`.
 | `auto`               | `false`: press ENTER to start each trial. `true`: start right away                       |
 | `duration`           | Seconds to run each trial. `0`: run until you press ENTER. For a mission, defaults to `0`; for a video, defaults to the video's length (see below) |
 | `grace`              | (optional) Seconds to keep running after the duration (or ENTER) before the trial is stopped, e.g. for prioritized reintegration or reachback to finish transmitting. The mission or flow, netsim and the power measurement all keep running through it. Default `0` |
+| `warmup`             | (optional) Seconds to wait once the daemons report their services running, before the mission or flow starts. A service is listed as running once its process is up, so an engine that then loads a model (e.g. CLIP, which takes ~30 s on a Tachyon) would miss the first frames of a video without it. Default `0` |
 
 The video is pushed (or not) as its `[[uploads]]` entry says. A driver such
 as `fake_drone` then finds it by name in `STEELEAGLE_FILES`, so set the

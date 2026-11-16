@@ -10,6 +10,7 @@ vehicle = "drone"
 video = "parkinglot.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded"]
 interface = "tailscale0"
@@ -24,6 +25,7 @@ vehicle = "drone"
 video = "parkinglot.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]
@@ -40,6 +42,7 @@ vehicle = "drone"
 video = "traintrack.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded"]
 interface = "tailscale0"
@@ -54,6 +57,7 @@ vehicle = "drone"
 video = "traintrack.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]
@@ -70,6 +74,7 @@ vehicle = "drone"
 video = "street.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded"]
 interface = "tailscale0"
@@ -84,6 +89,7 @@ vehicle = "drone"
 video = "street.mp4"
 flow = "flow.toml"
 auto = true
+warmup = 30  # for CLIP to load before the first frame
 grace = 60  # for reintegration to finish
 [experiments.netsim]
 profiles = ["intermittent", "malicious"]

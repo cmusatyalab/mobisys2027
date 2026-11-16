@@ -52,6 +52,12 @@ TRIALS = 3
 # Grace after the video of a lossy (intermittent, malicious) experiment, for
 # reintegration to finish
 GRACE_S = 60
+# Seconds the runner waits for the engines to load before starting the video,
+# for experiments with a CLIP engine: cliped is listed as running ~10-20 s
+# before it can score a frame on fermi (torch import, MobileCLIP, the HTP
+# graph), and without it missed the start of every video
+WARMUP_S = 30
+CLIP_PLUGINS = frozenset({"cliped", "box_rerank"})
 # The send queue of every reintegrating engine (detection-crop, cliped,
 # patchcore-score): room to wait out an outage. Their reintegration delivers
 # one item at a time and resends on the flow's events alone (its producer has
@@ -296,6 +302,8 @@ class Exp:
         if src.kind == "images" and d:
             frames = src.labels.frames if src.labels else src.frames
             lines.append(f"duration = {round(d, 2)}  # {frames} frames at {src.fps:g} fps")
+        if any(s.plugin in CLIP_PLUGINS for s in self.fermi):
+            lines.append(f"warmup = {WARMUP_S}  # for CLIP to load before the first frame")
         if self.lossy:
             lines.append(f"grace = {GRACE_S}  # for reintegration to finish")
         if self.targets:
