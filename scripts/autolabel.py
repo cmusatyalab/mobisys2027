@@ -38,7 +38,7 @@ class names by id in --labels (a JSON list, as the detection plugin's
 rfdetr_labels), the classes to keep in --keep, and --no-vlm to label each
 track with the class the detector gave it most:
 
-    uv run scripts/autolabel.py nov16_tracking_720p.mp4 -o labels/nov16_tracking.json \
+    uv run scripts/autolabel.py beagle_tracking_720p.mp4 -o labels/beagle_tracking.json \
         --weights dog_extended_2x.pth --labels dog_extended.json --keep "robotic dog" \
         --no-vlm --target "robotic dog"
 

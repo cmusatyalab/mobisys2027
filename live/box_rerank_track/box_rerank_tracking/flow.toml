@@ -1,8 +1,13 @@
-# rgb -> detection_qnn (YOLO, low confidence) and box_rerank, which picks the
-# target among YOLO's boxes, or none (a dead end: its pick is its result,
-# logged in mb/candidates.csv, and by detection_log in mb/boxes.csv). box_rerank.reintegration -> webp_encoder
-# ==network==> webp_decoder -> verifier (Qwen3-VL), whose yes/no box_rerank
-# learns from. Frames never wait on the network.
+# The drone tracks the robot dog by box_rerank's pick (the mission's Track
+# engine): rgb -> detection_qnn (YOLO on the HTP, low confidence) and
+# box_rerank, which picks the dog among YOLO's boxes, or none, on the vehicle.
+# box_rerank.reintegration -> webp_encoder ==network==> webp_decoder ->
+# verifier (Qwen3-VL on lambda), whose yes/no box_rerank learns from; frames
+# never wait on the network. Telemetry goes to the GCS; no video does.
+
+[[producers]]
+name = "vehicle.telemetry"
+tokens = 1
 
 [[producers]]
 name = "vehicle.rgb"
@@ -11,6 +16,10 @@ tokens = 1
 [[producers]]
 name = "local.box_rerank.reintegration"
 tokens = 1
+
+[[engines]]
+name = "remote.gcs"
+location = "remote"
 
 [[engines]]
 name = "local.detection_qnn"
@@ -37,24 +46,30 @@ name = "remote.verifier"
 location = "remote"
 
 [[edges]]
+from = "vehicle.telemetry"
+to = "remote.gcs"
+timeout = "1s"
+
+[[edges]]
 from = "vehicle.rgb"
 to = "local.detection_qnn"
-timeout = "2s"
+timeout = "1s"
 
 [[edges]]
 from = "vehicle.rgb"
 to = "local.box_rerank"
-timeout = "2s"
+timeout = "1s"
 
 [[edges]]
 from = "vehicle.rgb"
 to = "local.detection_log"
-timeout = "2s"
+timeout = "1s"
 
+# The crops wait for the link, off the frame path
 [[edges]]
 from = "local.box_rerank.reintegration"
 to = "local.webp_encoder"
-timeout = "2s"
+timeout = "30s"
 
 [[edges]]
 from = "local.webp_encoder"

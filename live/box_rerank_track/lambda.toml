@@ -1,0 +1,46 @@
+# lambda (orchestrator): the GCS, and the verifier box_rerank's crops go to
+
+[daemon]
+  cert = ""
+  hostname = "lambda"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  port = 9000
+
+[[services]]
+  auth = "admin"
+  name = "gcs"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/gcs@v4_backend_rework"
+    plugin = "gcs"
+    [services.plugin.args]
+      dump_dir = "gcs_frames"
+      http_addr = ":8002"
+      mapbox = "pk.eyJ1IjoibWloaXJiYWxhIiwiYSI6ImNtZnB4c29yajBtNGcybXEyOW45dmYyY24ifQ.hjJrPxoZ4Qoi6rqBIYkXVQ"
+
+[[services]]
+  name = "webp_decoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_decoder"
+
+# Qwen3-VL 8B on Ollama: "Is the object inside the red box a quadruped robot
+# dog?", the crop enlarged to 224 px first; logs each crop and its answer
+[[services]]
+  name = "verifier"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "verifier"
+    [services.plugin.args]
+      log_tiles = true
+      min_side = 224
+      prompt = "a quadruped robot dog"
+      question = "box"
+
+[simulator]
+  package = "https://github.com/cmusatyalab/steeleagle_plugins//simulator@v4_backend_rework"
+

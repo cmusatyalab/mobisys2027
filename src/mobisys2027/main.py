@@ -19,8 +19,9 @@ marked no_upload, which are assumed to already be there. Then, for each
 experiment, for each of its netsim profiles, and for each trial, the runner:
 
   1. restarts the daemons with the experiment's configs for the profile,
-  2. for the ambient profile only: stops the vehicle, measures the link from
-     its host with iperf3 (the trial's bandwidth timeline), and restarts it,
+  2. for the ambient profile only: gives the trial the link measured with
+     iperf3 once, at the start of the run, before any daemon is configured
+     (the trial's bandwidth timeline; see measure_ambient_once),
   3. starts the mission (upload, or CompileMission for a mission folder holding
      flow.toml and mission.json or mission.dsl; then load and start; if StartMission fails, the
      daemons get their own configs back and the run aborts) or sets the video's
@@ -2213,60 +2214,117 @@ def netsim_direction(exp: Experiment) -> str:
     return "ingress"
 
 
-def measure_ambient(client: Daemon, exp: Experiment, vehicle: str, trial_dir: Path) -> float:
-    """For the ambient profile: stops the vehicle, so it sends nothing, and
-    measures the link between its host and this one with iperf3, in the
-    direction netsim would shape (by default, from the vehicle's host to
-    here). The vehicle is restarted afterwards, even if the measurement
-    fails. The per-second throughput is written to trial_dir/timeline.csv, as
-    netsim would write its timeline, and iperf3's report to iperf3.json.
-    Returns the end of the measurement, in seconds."""
+@dataclass
+class AmbientLink:
+    """The link an ambient trial runs on, measured once (measure_ambient_once):
+    iperf3's one-second throughput, as timeline rows, and its report."""
+    rows: list[dict]
+    end: float  # seconds the measurement lasted
+    measured_at: str
+    dir: Path  # iperf3.json and iperf3_server.log
+
+
+# Per link (ambient_key), its measurement this run
+AMBIENT_LINKS: dict[tuple, AmbientLink] = {}
+
+
+def vehicle_host(client: Daemon, exp: Experiment) -> tuple[DaemonCfg, str]:
+    """The remote daemon whose ambient config runs the experiment's vehicle,
+    and its IP as registered with the orchestrator: found from the configs,
+    so the vehicle needn't be running."""
     listing = client.list_services()
-    remote = next(
-        (r for r in listing.remotes if not r.error and r.ip and vehicle.startswith(r.ip + ".")), None,
-    )
-    if remote is None:
-        raise RuntimeError(
-            f"ambient: vehicle {vehicle} doesn't run on a registered remote daemon, "
-            f"so there is no link to measure"
-        )
-    host = next(
-        (d for d in exp.remotes if (r := find_remote(listing, d)) is not None and r.ip == remote.ip), None,
-    )
-    if host is None or not host.ssh_host:
-        raise RuntimeError(
-            f"ambient: the daemon at {remote.ip} ({remote.hostname}), which runs {vehicle}, "
-            f"needs a [daemons] entry with a prefix, to start iperf3 on it over ssh"
-        )
-
-    log(f"ambient: stopping {vehicle}")
-    client.stop_service(vehicle)
-    try:
-        report = run_iperf(exp, host, remote.ip, trial_dir)
-    finally:
-        log(f"ambient: restarting {vehicle}")
-        client.restart_service(vehicle)
-
-    rows, end = [], 0.0
-    for interval in report.get("intervals", []):
-        sums = interval.get("sum", {})
-        if "start" not in sums:
+    for key, config in exp.configs[AMBIENT].items():
+        d = exp.daemons[key]
+        if d.orchestrator or exp.vehicle not in config_services(config):
             continue
-        kbps = round(sums.get("bits_per_second", 0.0) / 1000, 1)
-        rows.append({
-            "t_sec": f"{sums['start']:.3f}", "drawn_kbps": kbps, "applied_kbps": kbps,
-            "state": AMBIENT, "delay_ms": "",
-        })
-        end = max(end, float(sums.get("end", sums["start"])))
-    if not rows:
-        raise RuntimeError(f"ambient: iperf3 reported no intervals; see {trial_dir / 'iperf3.json'}")
+        if not d.ssh_host:
+            raise RuntimeError(
+                f"ambient: {d.key}, which runs {exp.vehicle}, needs a prefix in [daemons], "
+                f"to start iperf3 on it over ssh"
+            )
+        remote = find_remote(listing, d, include_failed=True)
+        if remote is None or not remote.ip:
+            raise RuntimeError(f"ambient: {d.key}, which runs {exp.vehicle}, isn't registered with the orchestrator")
+        return d, remote.ip
+    raise RuntimeError(
+        f"ambient: no remote daemon's config runs the vehicle {exp.vehicle}, so there is no link to measure"
+    )
+
+
+def ambient_key(exp: Experiment, host: DaemonCfg, ip: str) -> tuple:
+    """What a measurement of the link depends on: experiments that agree on
+    it share one."""
+    return host.ssh_host, ip, netsim_direction(exp), exp.iperf_port, exp.iperf_duration
+
+
+def measure_ambient_once(client: Daemon, exps: list[Experiment], only_trial: int | None, overwrite: bool) -> None:
+    """For the ambient profile: measures the link between the vehicle's host
+    and this one with iperf3, in the direction netsim would shape (by
+    default, from the vehicle's host to here), once for the whole run, before
+    any daemon is configured for an experiment, rather than before each
+    trial. The experiments' daemons' running services are stopped for it, so
+    nothing else is sent, and restarted afterwards, even if it fails. Each
+    ambient trial then gets a copy (use_ambient). An experiment on another
+    link (host, direction, port or duration) gets its own measurement."""
+    needed = [e for e in exps if AMBIENT in e.profiles and pending_trials(e, AMBIENT, only_trial, overwrite)]
+    if not needed:
+        return
+    links = {}
+    for e in needed:
+        host, ip = vehicle_host(client, e)
+        links.setdefault(ambient_key(e, host, ip), (e, host, ip))
+    log(f"ambient: measuring {len(links)} link(s) once, before any trial, for "
+        f"{', '.join(e.name for e in needed)}")
+    stopped = set()
+    try:
+        for e in needed:
+            if e.dir not in stopped:
+                stop_services(client, e)
+                stopped.add(e.dir)
+        for key, (e, host, ip) in links.items():
+            out = Path(tempfile.mkdtemp(prefix="ambient_"))
+            report = run_iperf(e, host, ip, out)
+            rows, end = [], 0.0
+            for interval in report.get("intervals", []):
+                sums = interval.get("sum", {})
+                if "start" not in sums:
+                    continue
+                kbps = round(sums.get("bits_per_second", 0.0) / 1000, 1)
+                rows.append({
+                    "t_sec": f"{sums['start']:.3f}", "drawn_kbps": kbps, "applied_kbps": kbps,
+                    "state": AMBIENT, "delay_ms": "",
+                })
+                end = max(end, float(sums.get("end", sums["start"])))
+            if not rows:
+                raise RuntimeError(f"ambient: iperf3 reported no intervals; see {out / 'iperf3.json'}")
+            AMBIENT_LINKS[key] = AmbientLink(rows, end, datetime.now().isoformat(timespec="seconds"), out)
+            mean = sum(float(r["applied_kbps"]) for r in rows) / len(rows)
+            log(f"ambient: measured {mean:.1f} Kbps on average over {end:g}s, from {host.key}; "
+                f"every ambient trial on this link uses it")
+    finally:
+        log("ambient: restarting the services stopped for the measurement")
+        restart_stopped_by_runner(client)
+
+
+def use_ambient(client: Daemon, exp: Experiment, trial_dir: Path) -> float:
+    """Gives an ambient trial the run's measurement of its link
+    (measure_ambient_once): trial_dir/timeline.csv, as netsim would write its
+    timeline, iperf3's report (iperf3.json) and its server's log, and
+    ambient_measured_at. Returns the end of the measurement, in seconds."""
+    host, ip = vehicle_host(client, exp)
+    link = AMBIENT_LINKS.get(ambient_key(exp, host, ip))
+    if link is None:
+        raise RuntimeError(f"ambient: the link from {host.key} wasn't measured at the start of the run")
     with open(trial_dir / "timeline.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=TIMELINE_COLUMNS[1:])
         w.writeheader()
-        w.writerows(rows)
-    mean = sum(float(r["applied_kbps"]) for r in rows) / len(rows)
-    log(f"ambient: measured {mean:.1f} Kbps on average over {end:g}s")
-    return end
+        w.writerows(link.rows)
+    for name in ("iperf3.json", "iperf3_server.log"):
+        if (link.dir / name).exists():
+            shutil.copy2(link.dir / name, trial_dir / name)
+    (trial_dir / "ambient_measured_at").write_text(f"{link.measured_at}\n")
+    log(f"ambient: using the link measured at {link.measured_at}")
+    return link.end
 
 
 def run_iperf(exp: Experiment, host: DaemonCfg, ip: str, trial_dir: Path) -> dict:
@@ -2342,9 +2400,7 @@ def run_trial(
     log(f"=== {exp.name}: {what} ({describe(phase)}) ===")
 
     if profile == AMBIENT:
-        netsim.timeline_end = measure_ambient(client, exp, vehicle, trial_dir)
-        vehicle = client.wait_ready(exp.vehicle, exp.remotes)
-        log(f"vehicle restarted; targeting {vehicle}")
+        netsim.timeline_end = use_ambient(client, exp, trial_dir)
 
     if phase.kind == "mission":
         if phase.no_upload:
@@ -2696,6 +2752,8 @@ def main():
     written: list[Path] = []
     finished = False
     try:
+        # Once, before any daemon is configured for an experiment
+        measure_ambient_once(client, exps, args.trial, args.overwrite)
         for e in exps:
             if not todo[id(e)]:
                 log(f"### experiment {e.name} ({e.dir}): already done")

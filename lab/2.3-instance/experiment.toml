@@ -12,7 +12,7 @@ vehicle = "drone"
 video = "tunnel_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45  # box_rerank loads CLIP for ~30 s after it is listed as running
+warmup = 30  # box_rerank loads CLIP for ~20 s after it is listed as running
 grace = 30  # for the queued crops to reach the verifier
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -27,7 +27,7 @@ vehicle = "drone"
 video = "ric_back_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45  # box_rerank loads CLIP for ~30 s after it is listed as running
+warmup = 30  # box_rerank loads CLIP for ~20 s after it is listed as running
 grace = 30  # for the queued crops to reach the verifier
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -42,7 +42,7 @@ vehicle = "drone"
 video = "tunnel_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -57,7 +57,7 @@ vehicle = "drone"
 video = "ric_back_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -74,7 +74,7 @@ vehicle = "drone"
 video = "tunnel_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -89,7 +89,7 @@ vehicle = "drone"
 video = "ric_back_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -104,7 +104,7 @@ vehicle = "drone"
 video = "tunnel_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -119,7 +119,7 @@ vehicle = "drone"
 video = "ric_back_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -134,7 +134,7 @@ vehicle = "drone"
 video = "tunnel_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]
@@ -149,7 +149,7 @@ vehicle = "drone"
 video = "ric_back_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 grace = 30
 [experiments.netsim]
 profiles = ["intermittent"]

@@ -1,23 +1,23 @@
-# Tracking the robot dog in the nov16 run (nov16_tracking_720p.mp4, already
+# Tracking the robot dog in the beagle run (beagle_tracking_720p.mp4, already
 # in heisenberg's files directory), three ways, under each network profile:
 #
-# - rerank_nov16: YOLO on heisenberg's HTP, and box_rerank picking among its
+# - rerank_beagle: YOLO on heisenberg's HTP, and box_rerank picking among its
 #   boxes (by confidence), the crops going to lambda's Qwen3-VL verifier;
-# - rerank_prompt_nov16: the same, box_rerank ranking its boxes by the prompt;
-# - yolo_nov16: onboard only, YOLO alone;
-# - rfdetr_nov16: offboard only, H.264 to lambda's RF-DETR.
+# - rerank_prompt_beagle: the same, box_rerank ranking its boxes by the prompt;
+# - yolo_beagle: onboard only, YOLO alone;
+# - rfdetr_beagle: offboard only, H.264 to lambda's RF-DETR.
 #
 # Each logs the box it reports on every frame it decides, with when, in
 # mb/boxes.csv (detection_log); scored by scripts/score_tracking.py.
 
 [[experiments]]
-name = "rerank_nov16"
+name = "rerank_beagle"
 vehicle = "drone"
 [experiments.video]
-video = "nov16_tracking_720p.mp4"
+video = "beagle_tracking_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45  # box_rerank loads CLIP for ~30 s after it is listed as running
+warmup = 30  # box_rerank loads CLIP for ~20 s after it is listed as running
 duration = 63  # the clip is 62.03 s; set here as videos/ has no copy of it
 grace = 30  # for the queued crops to reach the verifier
 [experiments.netsim]
@@ -27,13 +27,13 @@ port = 9001
 trials = 1
 
 [[experiments]]
-name = "rerank_prompt_nov16"  # as rerank_nov16, box_rerank ranking by the prompt
+name = "rerank_prompt_beagle"  # as rerank_beagle, box_rerank ranking by the prompt
 vehicle = "drone"
 [experiments.video]
-video = "nov16_tracking_720p.mp4"
+video = "beagle_tracking_720p.mp4"
 flow = "flow.toml"
 auto = true
-warmup = 45
+warmup = 30
 duration = 63
 grace = 30
 [experiments.netsim]
@@ -43,10 +43,10 @@ port = 9001
 trials = 1
 
 [[experiments]]
-name = "yolo_nov16"
+name = "yolo_beagle"
 vehicle = "drone"
 [experiments.video]
-video = "nov16_tracking_720p.mp4"
+video = "beagle_tracking_720p.mp4"
 flow = "flow_yolo.toml"
 auto = true
 duration = 63
@@ -58,10 +58,10 @@ port = 9001
 trials = 1
 
 [[experiments]]
-name = "rfdetr_nov16"
+name = "rfdetr_beagle"
 vehicle = "drone"
 [experiments.video]
-video = "nov16_tracking_720p.mp4"
+video = "beagle_tracking_720p.mp4"
 flow = "flow_rfdetr.toml"
 auto = true
 warmup = 30  # for RF-DETR to load onto the GPU
@@ -75,7 +75,7 @@ trials = 1
 
 # Already in heisenberg's files directory
 [[uploads]]
-file = "nov16_tracking_720p.mp4"
+file = "beagle_tracking_720p.mp4"
 no_upload = true
 
 [daemons]
@@ -87,7 +87,7 @@ prefix = "root@heisenberg:"
 
 [results] # moved off the hosts after each trial
 heisenberg = "heisenberg/root/.local/share/steeleagle/files/mb/"
-lambda = "lambda/root/.local/share/steeleagle/files/mb/"  # rfdetr_nov16's boxes
+lambda = "lambda/root/.local/share/steeleagle/files/mb/"  # rfdetr_beagle's boxes
 [catalogs] # copied, the sources are kept
 box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
 verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"

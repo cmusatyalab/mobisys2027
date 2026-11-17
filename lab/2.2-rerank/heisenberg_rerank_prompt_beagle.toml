@@ -1,7 +1,7 @@
-# heisenberg (Tachyon): replays tunnel_720p.mp4 through YOLO (COCO) on the HTP
-# and box_rerank, looking for "person in light blue shirt and dark pants, brown hair" (Qwen's description of the photo
-# gray_shirt.png); the crops go to lambda's verifier, which compares each
-# with that photo
+# heisenberg (Tachyon), rerank_prompt_beagle: as heisenberg.toml, ranking by
+# the prompt.
+# heisenberg (Tachyon): replays the beagle robot dog run, YOLO on the HTP, and
+# box_rerank, which sends its crops to lambda's verifier
 
 [daemon]
 cert = ""
@@ -12,7 +12,8 @@ metrics_port = 9393
 orchestrator = "lambda:9000"
 port = 9000
 
-# Replays tunnel_720p.mp4 once; logs each frame; hardware decoder
+# Replays beagle_tracking_720p.mp4 (16:59-18:01 of beagle_tracking.mp4, one
+# onboard-only tracking run, at 720p) once; logs each frame; hardware decoder
 [[services]]
 name = "drone"
 type = "vehicle"
@@ -21,13 +22,13 @@ plugin = "fake_drone"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
 environment = "native"
 [services.plugin.args]
-video = "tunnel_720p.mp4"
+video = "beagle_tracking_720p.mp4"
 decoder = "qtic2vdec"
 no_loop = true
 frame_log = "mb/frames.csv"
 
-# YOLO26 (COCO) on the HTP, at a low confidence, so box_rerank sees the
-# people YOLO is unsure of too
+# The onboard tracking model, at a lower confidence than the 0.5 it tracks
+# with, so box_rerank sees the boxes YOLO is unsure of too
 [[services]]
 name = "detection_qnn"
 type = "engine"
@@ -36,14 +37,14 @@ plugin = "detection-qnn"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
 [services.plugin.args]
 backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
-only_classes = ["person"]
+labels = "dog_extended.txt"
+model = "libdog_extended_s640_v26_dogcalib_quant.so"
 confidence = 0.25
 nms_score_threshold = 0.25
 
-# Reports at most one "gray shirt" a frame among YOLO's people: the target is
-# described in text for CLIP, and by the photo for the verifier. Until the
-# verifier confirms him, the person most like the text (of those from 0.5)
-# is reported
+# Reports at most one "robotic dog" a frame: never a box like one the
+# verifier said no to twice, first one like a confirmed yes, else YOLO's best
+# from 0.5 most like the prompt. Logs every candidate of every frame, and each crop sent
 [[services]]
 name = "box_rerank"
 type = "engine"
@@ -53,15 +54,10 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_
 [services.plugin.args]
 detector = "detection_qnn"
 verifier = "verifier"
-class = "gray shirt"
-classes = ["person"]
-# CLIP ranks a frame's people by a text description: image-to-image
-# similarity doesn't tell people apart, text naming their clothes does
-prompt = "person in light blue shirt and dark pants, brown hair"
+class = "robotic dog"
+prompt = "a quadruped robot dog"
+# Ranked by the prompt: the frame's boxes against each other by s
 rank = "prompt"
-# A no vetoes only near-identical crops: crops of different people are as
-# alike as crops of one person, so lower would veto him for the others
-learn_similarity = 0.95
 confidence = 0.5
 log_candidates = "mb/candidates.csv"
 log_tiles = true
@@ -76,7 +72,9 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail
 [services.plugin.args]
 quality = 80
 
-# Logs the box box_rerank reports on each frame it decides, and when
+# Logs the box box_rerank reports on each frame it decides, and when, for
+# precision, recall, throughput and latency; no images, so it costs the frame
+# path nothing
 [[services]]
 name = "detection_log"
 type = "engine"

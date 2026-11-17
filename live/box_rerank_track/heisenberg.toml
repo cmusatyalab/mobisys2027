@@ -1,0 +1,80 @@
+# heisenberg (Tachyon, on the drone): the Anafi, YOLO on the HTP, and
+# box_rerank, which picks the robot dog among YOLO's boxes for the mission's
+# Track action and sends its crops to lambda's verifier. No instance gate.
+
+[daemon]
+  cert = ""
+  hostname = "heisenberg"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  orchestrator = "lambda:9000"
+  port = 9000
+
+[[services]]
+  name = "steppeeagle"
+  type = "vehicle"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/parrot_anafi@v4_backend_rework"
+    plugin = "anafi4k"
+    [services.plugin.args]
+      decoder = "qtic2vdec"
+
+# The onboard tracking model, at a lower confidence than the 0.5 it tracks
+# with, so box_rerank sees the boxes YOLO is unsure of too
+[[services]]
+  name = "detection_qnn"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+    plugin = "detection-qnn"
+    [services.plugin.args]
+      backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
+      confidence = 0.25
+      labels = "dog_extended.txt"
+      model = "libdog_extended_s640_v26_dogcalib_quant.so"
+      nms_score_threshold = 0.25
+
+# Reports at most one "robotic dog" a frame, for Track: never a box like one
+# the verifier said no to twice, first one like a confirmed yes, else the box
+# most like the prompt from 0.5 (rank "prompt", the default). Logs every
+# candidate of every frame
+[[services]]
+  name = "box_rerank"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "box_rerank"
+    [services.plugin.args]
+      class = "robotic dog"
+      confidence = 0.5
+      detector = "detection_qnn"
+      gate = false
+      log_candidates = "mb/candidates.csv"
+      prompt = "a quadruped robot dog"
+      rank = "prompt"
+      verifier = "verifier"
+
+# WebP for the crops on the link
+[[services]]
+  name = "webp_encoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_encoder"
+    [services.plugin.args]
+      quality = 80
+
+# Logs the box box_rerank reports on each frame it decides, and when; no
+# images, so it costs the frame path nothing
+[[services]]
+  name = "detection_log"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+    plugin = "detection-log"
+    [services.plugin.args]
+      csv = "mb/boxes.csv"
+      detector = "box_rerank"
+      images = false

@@ -1,6 +1,6 @@
 """Score box_rerank against YOLO alone, from the logs of a run.
 
-    uv run python scripts/score_rerank.py lab/rerank/<run dir> [...] --labels nov16_tracking_720p
+    uv run python scripts/score_rerank.py lab/2.2-rerank/<run dir> [...] --labels beagle_tracking_720p
 
 Each argument is a directory searched (recursively) for box_rerank's
 candidates.csv and fake_drone's frames.csv of one trial.
@@ -162,7 +162,7 @@ def score(trial_dir, labels, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("trials", nargs="+", type=Path)
-    parser.add_argument("--labels", default="nov16_tracking_720p")
+    parser.add_argument("--labels", default="beagle_tracking_720p")
     parser.add_argument("--iou", type=float, default=0.3)
     parser.add_argument("--yolo-conf", type=float, default=0.5)
     args = parser.parse_args()

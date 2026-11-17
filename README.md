@@ -364,24 +364,31 @@ reordering.
 trials have no timeline, and their stats CSV has only the trial and duration
 filled in.
 
-`ambient` also runs the experiment on the network as it is. Before each trial,
-once the daemons are up, the runner:
+`ambient` also runs the experiment on the network as it is. The link is
+measured **once per run**, at the start, before any daemon is configured for
+an experiment, so the vehicle needn't be stopped and restarted before each
+trial. If any experiment has `ambient` trials to run, the runner:
 
-1. stops the vehicle (`StopService`), so it isn't sending anything,
-2. starts a one-off `iperf3` server on the vehicle's host over ssh, and runs
-   the client here against it for `iperf_duration` seconds on `iperf_port`,
-   in the direction netsim would shape (by default the vehicle's host sends,
-   with `-R`; with `--direction egress` in `args`, this host sends),
-3. restarts the vehicle (`RestartService`, even if iperf3 failed) and waits for
-   it to be running again,
+1. stops the running services of those experiments' daemons (`StopService`),
+   so nothing else is sent,
+2. starts a one-off `iperf3` server on the vehicle's host (the remote daemon
+   whose config runs the vehicle) over ssh, and runs the client here against
+   it for `iperf_duration` seconds on `iperf_port`, in the direction netsim
+   would shape (by default the vehicle's host sends, with `-R`; with
+   `--direction egress` in `args`, this host sends),
+3. restarts the services it stopped (even if iperf3 failed).
 
-and then runs the trial without netsim. The per-second throughput iperf3
-measured is the trial's bandwidth timeline (state `ambient`), and its full
-report is saved as `trial_<n>/iperf3.json`. This needs `iperf3` installed on
-both hosts, the vehicle running on a remote daemon (not the orchestrator),
-and that daemon in `[daemons]` with a `prefix` to ssh to. A stopped service
-stays stopped across daemon restarts, so if the runner is killed hard while
-measuring, restart the vehicle with `eagle restart-service <vehicle>`.
+Experiments on the same link (host, direction, `iperf_port` and
+`iperf_duration`) share one measurement; another link is measured too. Each
+ambient trial then runs without netsim and gets a copy of the measurement:
+the per-second throughput iperf3 measured is its bandwidth timeline (state
+`ambient`), iperf3's full report is saved as `trial_<n>/iperf3.json`, and when
+it was measured as `trial_<n>/ambient_measured_at`. This needs `iperf3`
+installed on both hosts, the vehicle running on a remote daemon (not the
+orchestrator), and that daemon in `[daemons]` with a `prefix` to ssh to. A
+stopped service stays stopped across daemon restarts, so if the runner is
+killed hard while measuring, restart the services with
+`eagle restart-service <name>`.
 
 Each failpoint `[30, 10]` cuts the port off from 30 s to 40 s after the run
 starts, whatever the bandwidth draw says. Failpoints may be given in any order,
@@ -574,8 +581,8 @@ its `trials`:
    (see step 10).
 2. **Wait until ready.** The runner polls `ListServices` until every remote has
    re-registered and the vehicle is listed and running (5-minute timeout).
-3. **Measure** (`ambient` only). Stop the vehicle, measure the link with
-   iperf3, and restart the vehicle (see [`[experiments.netsim]`](#experimentsnetsim)).
+3. **Measure** (`ambient` only). The trial gets a copy of the link measured
+   once at the start of the run (see [`[experiments.netsim]`](#experimentsnetsim)).
 4. **Prepare.** For a mission: upload it (unless `no_upload` is set) and load
    it on the vehicle.
 5. **Wait for you.** If `auto = false`: press ENTER to start the trial.
@@ -698,8 +705,8 @@ The bandwidth statistics describe the **allowed** rate, not the measured
 throughput. They are weighted by time: each rate counts for as long as it was
 in effect, and periods with the port off count as 0. Under `delay` the
 bandwidth isn't limited, so they're empty and the delay columns are filled in
-instead. Under `ambient`, they describe the throughput iperf3 measured before
-the trial, and the byte totals are empty since netsim doesn't run.
+instead. Under `ambient`, they describe the throughput iperf3 measured at the
+start of the run, and the byte totals are empty since netsim doesn't run.
 
 ### timeline_\<profile\>_\<experiment\>.csv
 
@@ -789,8 +796,8 @@ Add `"--dry-run"` to an experiment's `netsim.args` to have netsim print its `tc`
 instead of running them. It then needs no root, and the runner won't ask for
 sudo. The byte totals in the stats CSV are empty in this mode, but the timeline
 and bandwidth statistics are filled in. `none` and `ambient` don't use netsim,
-so `--dry-run` doesn't affect them: `ambient` still stops the vehicle and runs
-iperf3.
+so `--dry-run` doesn't affect them: `ambient` still stops the services and runs
+iperf3, once at the start of the run.
 
 ## Troubleshooting
 

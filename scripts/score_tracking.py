@@ -1,7 +1,7 @@
 """Score tracking runs from detection_log's box logs: per method and profile,
 precision, recall, throughput and latency.
 
-    uv run python scripts/score_tracking.py lab/rerank/runs/*/*/trial_1 [--labels nov16_tracking_720p]
+    uv run python scripts/score_tracking.py lab/2.2-rerank/runs/*/*/trial_1 [--labels beagle_tracking_720p]
 
 Each argument is a trial directory, holding detection_log's boxes.csv (in
 result/<daemon>/) and fake_drone's frames.csv, which maps frame ids to the
@@ -120,7 +120,7 @@ def score(trial, labels, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("trials", nargs="+", type=Path)
-    parser.add_argument("--labels", default="nov16_tracking_720p")
+    parser.add_argument("--labels", default="beagle_tracking_720p")
     parser.add_argument("--iou", type=float, default=0.3)
     parser.add_argument("--clock-offset-ms", type=float, default=12.0,
                         help="the vehicle's clock minus the other host's (heisenberg - lambda was +12 ms)")

@@ -1,0 +1,40 @@
+# box_rerank tracking (replaces C-OP): the drone tracks the robot dog by
+# box_rerank's pick among YOLO's boxes, on the vehicle, while lambda's Qwen3-VL
+# verifier answers yes/no about its crops in the background, which box_rerank
+# learns from. No instance gate. Scored from mb/boxes.csv (detection_log) and
+# mb/candidates.csv (box_rerank) with scripts/score_tracking.py.
+[[experiments]]
+name = "box_rerank_tracking"
+vehicle = "steppeeagle" # Vehicle name to target
+[experiments.mission]
+# Uploaded and sent to start each trial
+file = "box_rerank_tracking"
+# Whether or not to start without prompting for ENTER
+auto = false
+# If duration > 0, will run the mission for the given duration (in seconds)
+# before stopping; otherwise, will prompt the user to press ENTER once done
+duration = 60
+# box_rerank loads CLIP for ~20 s after it is listed as running
+warmup = 20
+[experiments.netsim]
+# Network profiles, in order; the ambient link is measured once, at the start
+# of the run, before any service starts
+profiles = ["ambient", "limited", "degraded", "intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 3
+
+# heisenberg.toml and lambda.toml, for every profile
+[daemons]
+[daemons.lambda]
+orchestrator = true
+prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
+[daemons.heisenberg]
+prefix = "root@heisenberg:" # SSH/RSYNC prefix
+
+[results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
+[catalogs] # The sources will be copied; defer_pull ones are moved on their host into ~/.local/share/steeleagle/files/<experiment>_<profile>_<trial>_<catalog>/ instead, to be transferred later
+# box_rerank's candidates.csv and detection_log's boxes.csv, on the drone
+boxes = { path = "heisenberg/root/.local/share/steeleagle/files/mb/*", defer_pull = true }
+box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
+verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"
