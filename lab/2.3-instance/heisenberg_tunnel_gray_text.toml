@@ -59,6 +59,9 @@ classes = ["person"]
 # similarity doesn't tell people apart, text naming their clothes does
 prompt = "person in light blue shirt and dark pants, brown hair"
 rank = "prompt"
+# Keep this prompt, as this experiment first ran: don't switch to the
+# verifier's prompt heartbeat
+ignore_new = true
 # A no vetoes only near-identical crops: crops of different people are as
 # alike as crops of one person, so lower would veto him for the others
 learn_similarity = 0.95

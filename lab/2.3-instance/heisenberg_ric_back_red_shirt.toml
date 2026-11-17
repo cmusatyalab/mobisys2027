@@ -57,6 +57,9 @@ classes = ["person"]
 image = "red_shirt.png"
 # Rank a frame's people against each other by CLIP likeness to the photo
 rank = "prompt"
+# Keep this prompt, as this experiment first ran: don't switch to the
+# verifier's prompt heartbeat
+ignore_new = true
 confidence = 0.5
 log_candidates = "mb/candidates.csv"
 log_tiles = true

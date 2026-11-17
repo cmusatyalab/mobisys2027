@@ -58,6 +58,9 @@ classes = ["person"]
 # similarity doesn't tell people apart, text naming their clothes does
 prompt = "a person in a red shirt"
 rank = "prompt"
+# Keep this prompt, as this experiment first ran: don't switch to the
+# verifier's prompt heartbeat
+ignore_new = true
 # Reports nothing when no person is more like the description, over "a person",
 # than the cutoff learned from the verifier's answers
 gate = true

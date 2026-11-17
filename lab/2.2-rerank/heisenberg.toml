@@ -57,6 +57,9 @@ prompt = "a quadruped robot dog"
 # Ranked by confidence, as this experiment first ran (box_rerank's default
 # was then "confidence"); rerank_prompt_beagle ranks by the prompt
 rank = "confidence"
+# Keep this prompt, as this experiment first ran: don't switch to the
+# verifier's prompt heartbeat
+ignore_new = true
 confidence = 0.5
 log_candidates = "mb/candidates.csv"
 log_tiles = true
