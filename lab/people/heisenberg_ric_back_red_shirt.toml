@@ -40,7 +40,9 @@ confidence = 0.25
 nms_score_threshold = 0.25
 
 # Reports at most one "red shirt" a frame among YOLO's people: the target is
-# only the reference photo (red_shirt.png), for CLIP and for the verifier
+# only the reference photo (red_shirt.png), for CLIP and for the verifier.
+# Until the verifier confirms him, the person most like the photo (of those
+# from 0.5) is reported
 [[services]]
 name = "box_rerank"
 type = "engine"
@@ -53,6 +55,8 @@ verifier = "verifier"
 class = "red shirt"
 classes = ["person"]
 image = "red_shirt.png"
+# Rank a frame's people against each other by CLIP likeness to the photo
+rank = "prompt"
 confidence = 0.5
 log_candidates = "mb/candidates.csv"
 log_tiles = true
