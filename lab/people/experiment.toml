@@ -35,12 +35,136 @@ interface = "tailscale0"
 port = 9001
 trials = 1
 
+[[experiments]]
+name = "tunnel_red_text"  # as tunnel_red_shirt, box_rerank's CLIP given text, not the photo
+vehicle = "drone"
+[experiments.video]
+video = "tunnel_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "ric_back_red_text"  # as ric_back_red_shirt, box_rerank's CLIP given text, not the photo
+vehicle = "drone"
+[experiments.video]
+video = "ric_back_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+
+
+[[experiments]]
+name = "tunnel_gray_text"  # as tunnel_red_text, for the grey-shirt person: CLIP given Qwen's description of gray_shirt.png
+vehicle = "drone"
+[experiments.video]
+video = "tunnel_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "ric_back_gray_text"  # as ric_back_red_text, for the grey-shirt person: CLIP given Qwen's description of gray_shirt.png
+vehicle = "drone"
+[experiments.video]
+video = "ric_back_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "tunnel_red_gate"  # as tunnel_red_text, with box_rerank's instance gate
+vehicle = "drone"
+[experiments.video]
+video = "tunnel_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "ric_back_red_gate"  # as ric_back_red_text, with box_rerank's instance gate
+vehicle = "drone"
+[experiments.video]
+video = "ric_back_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "tunnel_gray_gate"  # as tunnel_gray_text, with box_rerank's instance gate
+vehicle = "drone"
+[experiments.video]
+video = "tunnel_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+[[experiments]]
+name = "ric_back_gray_gate"  # as ric_back_gray_text, with box_rerank's instance gate
+vehicle = "drone"
+[experiments.video]
+video = "ric_back_720p.mp4"
+flow = "flow.toml"
+auto = true
+warmup = 45
+grace = 30
+[experiments.netsim]
+profiles = ["intermittent"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
 [[uploads]]
 file = "tunnel_720p.mp4"
 [[uploads]]
 file = "ric_back_720p.mp4"
 [[uploads]]
 file = "red_shirt.png"
+[[uploads]]
+file = "gray_shirt.png"
 
 [daemons]
 [daemons.lambda]

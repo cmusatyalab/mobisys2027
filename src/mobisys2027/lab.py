@@ -58,6 +58,9 @@ GRACE_S = 60
 # graph), and without it missed the start of every video
 WARMUP_S = 30
 CLIP_PLUGINS = frozenset({"cliped", "box_rerank"})
+# The stream 2.1.1.1 (YOLO early discard) sends, by netsim profile: 480p on
+# normal's 2-3 Mbps, 240p on the slower ones
+ED_RESOLUTION = {"normal": "480p", "other": "240p"}
 # The send queue of every reintegrating engine (detection-crop, cliped,
 # patchcore-score): room to wait out an outage. Their reintegration delivers
 # one item at a time and resends on the flow's events alone (its producer has
@@ -237,6 +240,21 @@ def h264_encoder() -> Service:
     }, environment="native", comment="The Tachyon's hardware H.264 encoder, as in live/")
 
 
+def yolo_log() -> Service:
+    # A side branch off the camera: it drops each frame at once, so it holds
+    # no token, and logs a row for each frame yolo returned a result on. The
+    # drone's frame log can't say this: Uriel gives every published frame a
+    # seq, admitted or not
+    return Service("yolo_log", "detection-log", "engines/detection-log", {
+        "detector": "yolo", "images": False, "csv": f"{LOG_DIR}/scored.csv",
+    }, comment="Logs each frame yolo processed (frame_id, timestamp_ns, seq, its boxes), for effective recall")
+
+
+def rescale(resolution: str, comment: str = "") -> Service:
+    return Service("rescale", "rescale", "engines/rescale", {"resolution": resolution},
+                   comment=comment or f"Rescales each frame to {resolution}")
+
+
 def webp_encoder() -> Service:
     return Service("webp_encoder", "webp_encoder", "defaults/thumbnail", {"quality": 65},
                    comment="WebP at quality 65")
@@ -292,6 +310,9 @@ class Exp:
     trials: int = TRIALS
     # The labeled classes that count as found (true positives) when scoring
     targets: tuple = ()
+    # fermi's config for a profile, where it differs from `fermi`: written as
+    # fermi_<name>_<profile>.toml, which the runner uses for that profile
+    fermi_by_profile: dict[str, list[Service]] = field(default_factory=dict)
 
     def toml(self) -> str:
         src = self.source
@@ -344,6 +365,9 @@ class Dir:
         (d / "lambda2.toml").write_text(daemon_toml("lambda2", self.lambda2, f"lambda2 (orchestrator) for {self.title}"))
         for e in self.exps:
             (d / f"fermi_{e.name}.toml").write_text(daemon_toml("fermi", e.fermi, f"fermi for {self.title}: {e.name}"))
+            for p, services in e.fermi_by_profile.items():
+                (d / f"fermi_{e.name}_{p}.toml").write_text(
+                    daemon_toml("fermi", services, f"fermi for {self.title}: {e.name}, profile {p}"))
         sources = []
         for e in self.exps:
             if e.source not in sources:
@@ -446,12 +470,34 @@ def microbenchmarks() -> list[Dir]:
 def yolo() -> list[Dir]:
     base = "2.1-search/2.1.1-yolo"
     rx_h264 = [("local.h264_encoder", "remote.rx_metrics"), ("remote.rx_metrics", "remote.h264_decoder")]
-    ed_flow = flow_toml([("vehicle.rgb", "local.yolo"), ("local.yolo", "local.h264_encoder"), *rx_h264],
-                        "rgb -> yolo (early discard) -> h264_encoder ==network==> rx_metrics -> h264_decoder (lambda2)")
-    ed = Dir(f"{base}/2.1.1.1-yolo-ed", "2.1.1.1 YOLO early discard (person, conf 0.5), H.264",
-             {"flow.toml": ed_flow}, [metrics("rx_metrics", True), H264_DECODER],
-             per_source(SEARCH5, DEFAULT_PROFILES, lambda s, pad: [drone(s, pad), qnn(0.5), h264_encoder()],
-                        lossy_split=False))
+    # Every YOLO flow also sends each frame it admits to yolo_log, which logs
+    # the frames yolo processed (mb/scored.csv), for effective recall
+    log_edge = ("vehicle.rgb", "local.yolo_log")
+    ed_flow = flow_toml([("vehicle.rgb", "local.yolo"), ("local.yolo", "local.h264_encoder"), *rx_h264, log_edge],
+                        "rgb -> yolo (early discard) -> h264_encoder ==network==> rx_metrics -> h264_decoder (lambda2); "
+                        "rgb -> yolo_log")
+    # Early discard sends whole frames, so the stream is rescaled after yolo
+    # (which still sees the full frame) to fit the link: at full resolution an
+    # H.264 frame is ~50-200 KB, and with one in flight a 2-3 Mbps link
+    # delivered ~1-2 of them a second
+    def ed_fermi(src, pad, resolution):
+        return [drone(src, pad), qnn(0.5), yolo_log(),
+                rescale(resolution, f"Rescales the frames yolo keeps to a {resolution} stream"), h264_encoder()]
+
+    ed_exps = per_source(SEARCH5, DEFAULT_PROFILES, lambda s, pad: ed_fermi(s, pad, ED_RESOLUTION["normal"]),
+                         lossy_split=False)
+    for e in ed_exps:
+        e.fermi_by_profile = {p: ed_fermi(e.source, e.lossy, ED_RESOLUTION.get(p, ED_RESOLUTION["other"]))
+                              for p in e.profiles}
+    ed = Dir(f"{base}/2.1.1.1-yolo-ed",
+             f"2.1.1.1 YOLO early discard (person, conf 0.5), H.264 at {ED_RESOLUTION['normal']} on normal, "
+             f"{ED_RESOLUTION['other']} on the rest",
+             {"flow.toml": flow_toml(
+                 [("vehicle.rgb", "local.yolo"), ("local.yolo", "local.rescale"), ("local.rescale", "local.h264_encoder"),
+                  *rx_h264, log_edge],
+                 "rgb -> yolo (early discard) -> rescale -> h264_encoder ==network==> rx_metrics -> h264_decoder (lambda2); "
+                 "rgb -> yolo_log")},
+             [metrics("rx_metrics", True), H264_DECODER], ed_exps)
 
     confs = [0.01, *[round(0.1 * k, 1) for k in range(1, 11)]]
     curve_exps = []
@@ -459,7 +505,7 @@ def yolo() -> list[Dir]:
         src = SOURCES[name]
         for c in confs:
             curve_exps.append(Exp(f"{name}_c{int(round(c * 100)):03d}", src, ("none",),
-                                  [drone(src, False), qnn(c), h264_encoder()], trials=1,
+                                  [drone(src, False), qnn(c), yolo_log(), h264_encoder()], trials=1,
                                   targets=targets_of(src, ANYONE)))
     curve = Dir(f"{base}/2.1.1.2-yolo-recall-curve",
                 "2.1.1.2 YOLO early discard recall curve: confidence 0.01, 0.1 ... 1.0, unshaped link",
@@ -469,21 +515,25 @@ def yolo() -> list[Dir]:
     crop_dir = Dir(
         f"{base}/2.1.1.3-yolo-crop", "2.1.1.3 YOLO early discard + crop to the best person, WebP",
         {"flow.toml": flow_toml([("vehicle.rgb", "local.yolo"), ("local.yolo", "local.reduce"),
-                                 ("local.reduce", "local.webp_encoder"), *crop_rx],
-                                "rgb -> yolo -> reduce (crop) -> webp_encoder ==network==> rx_metrics -> webp_decoder (lambda2)")},
+                                 ("local.reduce", "local.webp_encoder"), *crop_rx, log_edge],
+                                "rgb -> yolo -> reduce (crop) -> webp_encoder ==network==> rx_metrics -> webp_decoder (lambda2); "
+                                "rgb -> yolo_log")},
         [metrics("rx_metrics", True), WEBP_DECODER],
         per_source(SEARCH5, DEFAULT_PROFILES,
-                   lambda s, pad: [drone(s, pad), qnn(0.5), crop("webp_decoder"), webp_encoder()], lossy_split=False))
+                   lambda s, pad: [drone(s, pad), qnn(0.5), yolo_log(), crop("webp_decoder"), webp_encoder()],
+                   lossy_split=False))
 
     # reduce is a dead end: only its reintegration producer sends crops
     reint_edges = [("vehicle.rgb", "local.yolo"), ("local.yolo", "local.reduce"),
-                   ("local.reduce.reintegration", "local.webp_encoder"), *crop_rx]
+                   ("local.reduce.reintegration", "local.webp_encoder"), *crop_rx, log_edge]
     reint = Dir(
         f"{base}/2.1.1.4-yolo-reintegration", "2.1.1.4 YOLO early discard + crop + prioritized reintegration, WebP",
         {"flow.toml": flow_toml(reint_edges, "rgb -> yolo -> reduce (a dead end); "
-                                             "reduce.reintegration -> webp_encoder ==network==> rx_metrics -> webp_decoder")},
+                                             "reduce.reintegration -> webp_encoder ==network==> rx_metrics -> webp_decoder; "
+                                             "rgb -> yolo_log")},
         [metrics("rx_metrics", True), WEBP_DECODER],
-        per_source(SEARCH5, ALL_PROFILES, lambda s, pad: [drone(s, pad), qnn(0.5), crop("webp_decoder"), webp_encoder()]))
+        per_source(SEARCH5, ALL_PROFILES,
+                   lambda s, pad: [drone(s, pad), qnn(0.5), yolo_log(), crop("webp_decoder"), webp_encoder()]))
 
     # 2.1.1.5 (the same, verified by RF-DETR 2XL) was folded into 2.1.1.4,
     # which took over its profiles: YOLO's crops at conf 0.5 already reach ~1.0

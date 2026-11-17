@@ -33,6 +33,18 @@ early_discard = true
 confidence = 0.5
 nms_score_threshold = 0.5
 
+# Logs each frame yolo processed (frame_id, timestamp_ns, seq, its boxes), for effective recall
+[[services]]
+name = "yolo_log"
+type = "engine"
+[services.plugin]
+plugin = "detection-log"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+[services.plugin.args]
+detector = "yolo"
+images = false
+csv = "mb/scored.csv"
+
 # The Tachyon's hardware H.264 encoder, as in live/
 [[services]]
 name = "h264_encoder"

@@ -36,11 +36,14 @@ standard deviation in the _sd columns):
 - verified_precision and verified_recall: the same for what the verifier on
   lambda2 passed on (sink_metrics), when there is one;
 - effective_recall (and verified_effective_recall): recall over only the
-  frames the pipeline processed. The fake drone sends a frame only when the
-  pipeline has a free input (its frame log's seq); a frame sent while it was
-  busy is dropped there, unseen. cliped and PatchCore log each frame they
-  score (mb/scored.csv), and only those count as processed: a frame they
-  never got to, queued behind a slow one, is unseen too. The gap between recall and
+  frames the pipeline processed. The fake drone's frame log gives every
+  frame it published a seq, whether or not the flow admitted it, so it
+  can't say which were processed: cliped, PatchCore and (through the
+  detection-log engine yolo_log) YOLO log each frame they score
+  (mb/scored.csv), and only those count as processed. A frame missing there
+  was never processed: not admitted, or queued behind a slow one. A trial
+  with no scored.csv (YOLO runs from before yolo_log) counts every frame the
+  drone published, so its effective_recall is its recall. The gap between recall and
   effective_recall is the targets the pipeline never saw; what
   effective_recall misses, it saw and lost (filtered out, or lost on the way);
 - processed_frac: the share of the source's frames the pipeline took in;
