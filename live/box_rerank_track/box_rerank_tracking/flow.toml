@@ -3,7 +3,9 @@
 # box_rerank, which picks the dog among YOLO's boxes, or none, on the vehicle.
 # box_rerank.reintegration -> webp_encoder ==network==> webp_decoder ->
 # verifier (Qwen3-VL on lambda), whose yes/no box_rerank learns from; frames
-# never wait on the network. Telemetry goes to the GCS; no video does.
+# never wait on the network. The decoded crops are also re-encoded as H.264 on
+# lambda (h264_encoder) for the GCS, to watch what box_rerank sends; with the
+# telemetry, that is all the GCS gets: the camera's video isn't sent.
 
 [[producers]]
 name = "vehicle.telemetry"
@@ -45,6 +47,10 @@ location = "remote"
 name = "remote.verifier"
 location = "remote"
 
+[[engines]]
+name = "remote.h264_encoder"
+location = "remote"
+
 [[edges]]
 from = "vehicle.telemetry"
 to = "remote.gcs"
@@ -79,4 +85,15 @@ timeout = "30s"
 [[edges]]
 from = "remote.webp_decoder"
 to = "remote.verifier"
+timeout = "30s"
+
+# The same crops, to the GCS
+[[edges]]
+from = "remote.webp_decoder"
+to = "remote.h264_encoder"
+timeout = "30s"
+
+[[edges]]
+from = "remote.h264_encoder"
+to = "remote.gcs"
 timeout = "30s"
