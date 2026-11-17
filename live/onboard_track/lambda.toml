@@ -23,7 +23,6 @@
     [services.plugin.args]
       dump_dir = "gcs_frames"
       http_addr = ":8002"
-      mapbox = "pk.eyJ1IjoibWloaXJiYWxhIiwiYSI6ImNtZnB4c29yajBtNGcybXEyOW45dmYyY24ifQ.hjJrPxoZ4Qoi6rqBIYkXVQ"
 
 [[services]]
   name = "detection"

@@ -1016,13 +1016,14 @@ class Daemon:
             time.sleep(1)
         raise TimeoutError(f"daemon not ready after {timeout:.0f}s: {last}")
 
-    def list_packages(self, route: str | None = None) -> set[str]:
-        """The uris of the packages installed on the daemon, or, with a route,
-        that remote daemon, including those pending its next restart."""
+    def list_packages(self, route: str | None = None) -> dict[str, float]:
+        """The packages installed on the daemon, or, with a route, that
+        remote daemon, including those pending its next restart: the time
+        each was last installed (Unix seconds), by uri."""
         resp = self.daemon.ListPackages(
             daemon_pb2.ListPackagesRequest(), metadata=self.route(route), timeout=RPC_TIMEOUT,
         )
-        return {p.uri for p in resp.packages}
+        return {p.uri: p.modified.seconds + p.modified.nanos / 1e9 for p in resp.packages}
 
     def install_package(self, uri: str, route: str | None = None) -> None:
         """Installs a package, which takes effect on the daemon's next restart."""
@@ -1147,30 +1148,136 @@ def config_packages(config: Path) -> list[str]:
     return sorted({u for u in uris if u})
 
 
-# --update-packages: reinstall every package a daemon's configs use, once per
-# run, so one installed from a branch gets that branch's latest code
-UPDATE_PACKAGES = False
-# (daemon key, package uri) installed or updated in this run
+# --update-packages (the default): reinstall each package a daemon's configs
+# use whose code upstream differs from what was installed, once per run; with
+# --no-update-packages, only missing packages are installed
+UPDATE_PACKAGES = True
+# (daemon key, package uri) installed, updated or checked in this run
 _installed: set[tuple[str, str]] = set()
+# What upstream tree each package was installed from, by "<daemon key> <uri>":
+# the daemon keeps no git metadata, so the runner records it
+PACKAGE_STATE = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state") / "mobisys2027" / "packages.json"
+# Bare, blobless clones of the packages' repositories, to read their trees
+GIT_CACHE = Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "mobisys2027" / "git"
+GIT_TIMEOUT = 300
+# The commit each (repository, version) is at upstream, fetched once a run
+_upstream: dict[tuple[str, str], str] = {}
+
+
+def split_package_uri(uri: str) -> tuple[str, str, str]:
+    """(repository url, subdir, version) of a package uri
+    (https://host/repo//sub/dir@version), as the daemon reads it; subdir is
+    "" for the root, version "" for the default branch."""
+    scheme = uri.find("://")
+    host_end = uri.find("/", scheme + 3) if scheme >= 0 else 0
+    host_end = len(uri) if host_end < 0 else host_end
+    at = uri.rfind("@", host_end)
+    url, version = (uri, "") if at < 0 else (uri[:at], uri[at + 1:])
+    start = scheme + 3 if scheme >= 0 else 0
+    sep = url.find("//", start)
+    repo, subdir = (url, "") if sep < 0 else (url[:sep], url[sep + 2:])
+    return repo, subdir.strip("/"), version
+
+
+def _git(repo_dir: Path, *args: str) -> str:
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_ALLOW_PROTOCOL": "https:file"}
+    out = subprocess.run(["git", "-C", str(repo_dir), *args], capture_output=True, text=True,
+                         timeout=GIT_TIMEOUT, env=env)
+    if out.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {out.stderr.strip()}")
+    return out.stdout.strip()
+
+
+def upstream_package(uri: str) -> tuple[str, float]:
+    """The id of the tree a package uri installs now (its subdir at its
+    version's latest commit upstream), and the time of the last commit that
+    changed it, from a cached blobless clone of its repository."""
+    repo, subdir, version = split_package_uri(uri)
+    ref = version or "HEAD"
+    cache = GIT_CACHE / hashlib.sha256(repo.encode()).hexdigest()[:16]
+    key = (repo, ref)
+    if key not in _upstream:
+        if not (cache / "HEAD").exists():
+            cache.mkdir(parents=True, exist_ok=True)
+            _git(cache, "init", "-q", "--bare")
+            _git(cache, "remote", "add", "origin", repo)
+        _git(cache, "fetch", "-q", "--filter=blob:none", "origin", ref)
+        _upstream[key] = _git(cache, "rev-parse", "FETCH_HEAD")
+    commit = _upstream[key]
+    tree = _git(cache, "rev-parse", f"{commit}:{subdir}" if subdir else f"{commit}^{{tree}}")
+    changed = _git(cache, "log", "-1", "--format=%ct", commit, *(["--", subdir] if subdir else []))
+    return tree, float(changed or 0)
+
+
+def _load_package_state() -> dict[str, str]:
+    try:
+        return json.loads(PACKAGE_STATE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def _record_package(key: str, uri: str, tree: str) -> None:
+    state = _load_package_state()
+    state[f"{key} {uri}"] = tree
+    PACKAGE_STATE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = PACKAGE_STATE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(state, indent=1, sort_keys=True) + "\n")
+    tmp.replace(PACKAGE_STATE)
+
+
+def package_outdated(key: str, uri: str, installed_at: float) -> tuple[bool, str | None, str]:
+    """Whether the package uri installed on daemon key at installed_at differs
+    from upstream: (outdated, upstream tree or None if it couldn't be read,
+    why). Known by the tree recorded when the runner installed it; for one it
+    didn't, by whether upstream changed it after it was installed (and then
+    the tree is recorded, so later runs compare trees)."""
+    try:
+        tree, changed_at = upstream_package(uri)
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as e:
+        return False, None, f"can't read upstream ({e}); keeping the installed one"
+    recorded = _load_package_state().get(f"{key} {uri}")
+    if recorded is not None:
+        return recorded != tree, tree, "upstream changed" if recorded != tree else "same as upstream"
+    if changed_at > installed_at:
+        return True, tree, "upstream changed after it was installed"
+    _record_package(key, uri, tree)
+    return False, tree, "unchanged upstream since it was installed"
 
 
 def install_packages(client: Daemon, key: str, config: Path, route: str | None = None) -> None:
     """Installs the packages config uses that daemon key doesn't have yet,
-    or, with UPDATE_PACKAGES, every one it uses, the first time in this run.
-    They take effect on the restart that configuring it causes."""
+    and, with UPDATE_PACKAGES, reinstalls those whose code differs from
+    upstream, the first time in this run. They take effect on the restart
+    that configuring it causes."""
     needed = [u for u in config_packages(config) if (key, u) not in _installed]
     if not needed:
         return
     have = client.list_packages(route)
     for uri in needed:
-        if uri in have and not UPDATE_PACKAGES:
-            continue
-        log(f"{'updating' if uri in have else 'installing'} {uri} on {key}")
+        _installed.add((key, uri))
+        tree = None
+        if uri in have:
+            if not UPDATE_PACKAGES:
+                continue
+            outdated, tree, why = package_outdated(key, uri, have[uri])
+            if not outdated:
+                if tree is None:
+                    log(f"not updating {uri} on {key}: {why}")
+                continue
+            log(f"updating {uri} on {key} ({why})")
+        else:
+            log(f"installing {uri} on {key}")
+            try:
+                tree, _ = upstream_package(uri)
+            except (OSError, RuntimeError, subprocess.TimeoutExpired):
+                tree = None  # installed anyway; the next run compares by time
         try:
             client.install_package(uri, route)
         except grpc.RpcError as e:
+            _installed.discard((key, uri))
             raise RuntimeError(f"couldn't install {uri} on {key}: {e.details()}") from None
-        _installed.add((key, uri))
+        if tree is not None:
+            _record_package(key, uri, tree)
 
 
 def config_services(config: Path) -> set[str]:
@@ -2660,9 +2767,10 @@ def main():
         "with --overwrite, replaced)",
     )
     ap.add_argument(
-        "--update-packages", action="store_true",
-        help="reinstall every package the daemons' configs use, once per daemon per run, "
-        "to get a branch's latest code (missing packages are always installed)",
+        "--update-packages", action=argparse.BooleanOptionalAction, default=True,
+        help="reinstall each package the daemons' configs use whose code differs from upstream "
+        "(its subdirectory at its branch's latest commit), once per daemon per run; on by default. "
+        "Missing packages are always installed",
     )
     ap.add_argument(
         "--zip-dir", type=Path, default=Path("archives"), metavar="DIR",

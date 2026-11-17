@@ -106,18 +106,29 @@ through.
 | `-p, --profile PROFILE` | Run only the netsim profile `PROFILE` (repeat, or separate with commas, for several) |
 | `--overwrite`     | Run every trial again, deleting earlier results (with `-t`, only that trial's). Without it, trials already complete are skipped (see [Output](#output)) |
 | `-t, --trial N`   | Run only trial `N` of each profile, into its existing results folder (see [Output](#output)) |
-| `--update-packages` | Reinstall every package the daemons' configs use, once per daemon per run, to get a branch's latest code (see below) |
+| `--no-update-packages` | Don't reinstall packages that differ from upstream; only install missing ones. By default (`--update-packages`) each package whose code differs from upstream is reinstalled, once per daemon per run (see below) |
 | `--zip-dir DIR`   | When the run ends, zip the results folders it wrote into `DIR/<date>-<time>.zip` (default `archives/`). A run stopped early (Ctrl-C, an error) still zips what it saved, as `<date>-<time>-partial.zip` |
 | `--no-zip`        | Don't zip the results |
 | `--socket PATH`   | eagled's control socket (default: `$XDG_RUNTIME_DIR/steeleagle/eagled.sock`) |
 
 Before configuring a daemon, the runner installs any package its config uses
-that the daemon doesn't have, through the orchestrator. A package that is
-already installed is left alone, even if its branch has moved on since; with
-`--update-packages`, each one is reinstalled the first time a daemon is
-configured in the run, so it picks up the branch's latest code. Updated
-plugins rebuild their environments when the daemon restarts, which makes the
-first trial slower.
+that the daemon doesn't have, through the orchestrator. It also reinstalls,
+the first time a daemon is configured in the run, each package whose code
+differs from upstream: the package's subdirectory at the latest commit of its
+branch (or tag). Packages that haven't changed upstream, such as
+`drivers/fake_drone` most of the time, are left alone. Updated plugins
+rebuild their environments when the daemon restarts, which makes the first
+trial slower. `--no-update-packages` turns this off.
+
+The daemon keeps no record of which commit it installed, so the runner does:
+it records the upstream tree of each package it installs in
+`~/.local/state/mobisys2027/packages.json`, by daemon and uri, and compares
+that with upstream on later runs. For a package installed some other way (or
+before the runner recorded it), it is outdated if upstream changed its
+subdirectory after the daemon installed it; once found current, its tree is
+recorded. Upstream is read from blobless clones cached in
+`~/.cache/mobisys2027/git`. If upstream can't be read (no network), the
+installed package is kept, and the runner says so.
 
 ## sudo: run it as yourself, not as root
 
