@@ -10,7 +10,7 @@ auto = false
 # before stopping; otherwise, will prompt the user to press ENTER once done
 duration = 60
 [experiments.netsim]
-# Network profiles, in order. heisenberg_case_study_2_offboard.toml (480p) is
+# Network profiles, in order. heisenberg_case_study_2_offboard.toml (360p) is
 # used for ambient, and heisenberg_case_study_2_offboard_limited.toml (240p)
 # for limited; the ambient link is measured once, at the start of the run
 profiles = ["ambient", "limited"]

@@ -16,7 +16,7 @@
     plugin = "encoder"
     [services.plugin.args]
       convert_threads = 4
-      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=854,height=480"
+      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=640,height=360"
       decoder_name = "decoder"
       encoder = "qtic2venc control-rate=disable b-frames=0 idr-interval=30"
       fps = 15
