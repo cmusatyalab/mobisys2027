@@ -1,0 +1,9 @@
+# lambda (orchestrator), onboard only: runs nothing
+
+[daemon]
+cert = ""
+hostname = "lambda"
+lcs = 9001
+logs = 9002
+metrics_port = 9393
+port = 9000

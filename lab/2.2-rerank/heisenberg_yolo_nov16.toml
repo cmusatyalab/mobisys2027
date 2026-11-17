@@ -1,0 +1,54 @@
+# heisenberg (Tachyon), onboard only: replays the nov16 robot dog run through
+# YOLO on the HTP, at the confidence the onboard tracker uses, and logs its boxes
+
+[daemon]
+cert = ""
+hostname = "heisenberg"
+lcs = 9001
+logs = 9002
+metrics_port = 9393
+orchestrator = "lambda:9000"
+port = 9000
+
+# Replays nov16_tracking_720p.mp4 (16:59-18:01 of nov16_tracking.mp4, one
+# onboard-only tracking run, at 720p) once; logs each frame; hardware decoder
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+environment = "native"
+[services.plugin.args]
+video = "nov16_tracking_720p.mp4"
+decoder = "qtic2vdec"
+no_loop = true
+frame_log = "mb/frames.csv"
+
+# The onboard tracking model, at the tracker's confidence
+[[services]]
+name = "detection_qnn"
+type = "engine"
+[services.plugin]
+plugin = "detection-qnn"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+[services.plugin.args]
+backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
+labels = "dog_extended.txt"
+model = "libdog_extended_s640_v26_dogcalib_quant.so"
+confidence = 0.5
+nms_score_threshold = 0.5
+
+# Logs the box YOLO reports on each frame it decides, and when, for
+# precision, recall, throughput and latency; no images, so it costs the frame
+# path nothing
+[[services]]
+name = "detection_log"
+type = "engine"
+[services.plugin]
+plugin = "detection-log"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+[services.plugin.args]
+detector = "detection_qnn"
+images = false
+csv = "mb/boxes.csv"

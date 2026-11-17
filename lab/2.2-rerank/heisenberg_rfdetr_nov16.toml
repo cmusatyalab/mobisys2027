@@ -1,0 +1,41 @@
+# heisenberg (Tachyon), offboard only: replays the nov16 robot dog run and
+# H.264-encodes it for lambda's RF-DETR
+
+[daemon]
+cert = ""
+hostname = "heisenberg"
+lcs = 9001
+logs = 9002
+metrics_port = 9393
+orchestrator = "lambda:9000"
+port = 9000
+
+# Replays nov16_tracking_720p.mp4 (16:59-18:01 of nov16_tracking.mp4, one
+# onboard-only tracking run, at 720p) once; logs each frame; hardware decoder
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+environment = "native"
+[services.plugin.args]
+video = "nov16_tracking_720p.mp4"
+decoder = "qtic2vdec"
+no_loop = true
+frame_log = "mb/frames.csv"
+
+# The Tachyon's hardware H.264 encoder at 720p, as in 2.1.1; pass_through_id
+# keeps fake_drone's frame ids, so lambda's boxes map back to the video
+[[services]]
+name = "h264_encoder"
+type = "engine"
+[services.plugin]
+plugin = "encoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+environment = "native"
+[services.plugin.args]
+decoder_name = "h264_decoder"
+converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12"
+encoder = "qtic2venc control-rate=disable b-frames=0 idr-interval=30"
+pass_through_id = true

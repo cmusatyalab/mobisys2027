@@ -1,0 +1,44 @@
+# lambda (orchestrator), offboard only: decodes heisenberg's H.264 and runs
+# RF-DETR (the dog model, as live/offboard_track) on the GPU, logging its boxes
+
+[daemon]
+cert = ""
+hostname = "lambda"
+lcs = 9001
+logs = 9002
+metrics_port = 9393
+port = 9000
+
+[[services]]
+name = "h264_decoder"
+type = "engine"
+[services.plugin]
+plugin = "decoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+
+# RF-DETR fine-tuned on the robot dog (models/dog_extended_2x.pth), at its
+# default confidence of 0.5
+[[services]]
+name = "detection"
+type = "engine"
+[services.plugin]
+plugin = "detection"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection@v4_backend_rework"
+environment = "cuda126"
+[services.plugin.args]
+model = "dog_extended_2x.pth"
+rfdetr_labels = ["N/A", "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "N/A", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "N/A", "backpack", "umbrella", "N/A", "N/A", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "N/A", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "couch", "potted plant", "bed", "N/A", "dining table", "N/A", "N/A", "toilet", "N/A", "tv", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "N/A", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush", "robotic dog"]
+
+# Logs the box RF-DETR reports on each frame it decides, and when, for
+# precision, recall, throughput and latency; no images, so it costs the frame
+# path nothing
+[[services]]
+name = "detection_log"
+type = "engine"
+[services.plugin]
+plugin = "detection-log"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+[services.plugin.args]
+detector = "detection"
+images = false
+csv = "mb/boxes.csv"
