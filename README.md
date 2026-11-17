@@ -316,6 +316,8 @@ no_upload = true              # already on every daemon: not pushed
 | `push_as`   | (optional) Name it is saved as on the daemons; defaults to its own name. Every upload is pushed at once, so two videos can't share one name; give each driver the name of its own video |
 | `no_upload` | (optional) `true`: don't push it; it's assumed to already be in every daemon's `STEELEAGLE_FILES` under its own name. The file then need not be here, and `push_as` can't be set |
 
+An upload isn't pushed to a daemon that already has a file of its name with the same SHA-256 (checked on the orchestrator's host, and over ssh on a remote's; a remote with no `prefix` is always pushed it). Changing the file pushes it again.
+
 Two uploads can't be pushed under the same name. With `-e`, every upload is
 still pushed. Since uploads are pushed only once, a `[results]` path that would
 move one off its daemon (e.g. `fermi/root/.local/share/steeleagle/files/*`) is

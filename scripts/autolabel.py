@@ -42,6 +42,13 @@ track with the class the detector gave it most:
         --weights dog_extended_2x.pth --labels dog_extended.json --keep "robotic dog" \
         --no-vlm --target "robotic dog"
 
+To label one individual among people, give a photo of them in --reference:
+the VLM is shown it with each track's crops and asked whether the track is
+that person. Tracks it says yes to are labeled --target, the rest "person":
+
+    uv run scripts/autolabel.py tunnel_720p.mp4 -o labels/tunnel_720p.json \
+        --reference red_shirt.png --target "red shirt"
+
 The file written is the labels/<name>.json format of mobisys2027/labels.py,
 with boxes normalized to the frame.
 """
@@ -104,6 +111,49 @@ class Tracker:
                 self.tracks.append({"boxes": {frame: b}, "last": frame})
 
 
+REFERENCE_QUESTION = (
+    "Image 1 is a reference photo of a person. Image 2 is a crop from a drone video, possibly from higher up "
+    "and at lower resolution. Is the person in image 2 the same person as in image 1? Answer with only yes or no."
+)
+
+
+def chat(host, model, question, images, timeout):
+    """The VLM's answer, lowercased, or None if it failed."""
+    body = json.dumps({
+        "model": model,
+        "stream": False,
+        "options": {"temperature": 0},
+        "messages": [{"role": "user", "content": question, "images": images}],
+    }).encode()
+    req = urllib.request.Request(f"{host}/api/chat", body, {"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read())["message"]["content"].strip().lower()
+    except Exception as e:  # keep going: the user fixes the labels anyway
+        print(f"  VLM failed: {e}", file=sys.stderr)
+        return None
+
+
+def encode(bgr):
+    ok, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    return base64.b64encode(buf.tobytes()).decode()
+
+
+def is_reference(crops, reference, host, model, timeout):
+    """Whether the track whose crops these are is the person in `reference`
+    (base64 JPEG), by majority of the crops; None if no answer came."""
+    yes = no = 0
+    for crop in crops:
+        answer = chat(host, model, REFERENCE_QUESTION, [reference, encode(crop)], timeout)
+        if answer is None:
+            continue
+        if answer.startswith("yes"):
+            yes += 1
+        else:
+            no += 1
+    return None if yes == no == 0 else yes > no
+
+
 def ask_vlm(crops, host, model, timeout):
     """'mannequin' or 'person' by majority over the crops, or None."""
     votes = {"mannequin": 0, "person": 0}
@@ -146,6 +196,9 @@ def main():
     parser.add_argument("--weights", type=Path, help="an RF-DETR .pth checkpoint instead of the stock model of --size")
     parser.add_argument("--labels", type=Path, help="JSON list of the checkpoint's class names, by class id")
     parser.add_argument("--keep", nargs="+", default=["person"], help="the classes kept (default: person)")
+    parser.add_argument("--reference", type=Path,
+                        help="a photo of the --target individual: tracks the VLM says are them are --target, "
+                             "the rest person")
     parser.add_argument("--no-vlm", action="store_true",
                         help="label each track with its most frequent class, instead of asking the VLM")
     args = parser.parse_args()
@@ -168,6 +221,12 @@ def main():
     else:
         model = getattr(rfdetr, classes[args.size])()
     labels = json.loads(args.labels.read_text()) if args.labels else None
+    reference = None
+    if args.reference:
+        image = cv2.imread(str(args.reference))
+        if image is None:
+            raise SystemExit(f"cannot read {args.reference}")
+        reference = encode(image)
     keep_classes = {k.lower() for k in args.keep}
     try:
         model.optimize_for_inference()
@@ -237,6 +296,9 @@ def main():
     for ti, t in enumerate(tracks):
         if args.no_vlm:
             label = Counter(box[5] for box in t["boxes"].values()).most_common(1)[0][0]
+        elif reference is not None:
+            label = args.target if is_reference(crops[ti], reference, args.ollama, args.model, timeout=120) \
+                else "person"
         else:
             label = ask_vlm(crops[ti], args.ollama, args.model, timeout=120) or "person"
         first, last = min(t["boxes"]), max(t["boxes"])

@@ -9,7 +9,8 @@ video's frames.
 
 Every frame the method decided (logged by detection_log) is graded on the box
 it reported: its best-scoring box of the target's class, if any. Frames the
-pipeline skipped while busy are never decided. A box is correct if its IoU
+pipeline skipped while busy are never decided. The box graded is the best of
+the class --class (by default the labels' target, e.g. "robotic dog"). A box is correct if its IoU
 with the labeled target is at least --iou; otherwise it is a false positive,
 put down to the labeled distractor it overlaps most (bag, chair), or "other".
 
@@ -30,7 +31,6 @@ from pathlib import Path
 
 from mobisys2027 import labels as L
 
-TARGET_CLASS = "robotic dog"
 VEHICLE = "heisenberg"
 
 
@@ -89,7 +89,7 @@ def score(trial, labels, args):
         head = rows[0]
         if head["timestamp_ns"] and head["result_ns"]:
             latency_ms.append((int(head["result_ns"]) + offset_ns - int(head["timestamp_ns"])) / 1e6)
-        dets = [r for r in rows if r["class"] == TARGET_CLASS]
+        dets = [r for r in rows if r["class"] == (args.cls or target)]
         if not dets:
             c["none"] += 1
             continue
@@ -124,6 +124,7 @@ def main():
     parser.add_argument("--iou", type=float, default=0.3)
     parser.add_argument("--clock-offset-ms", type=float, default=12.0,
                         help="the vehicle's clock minus the other host's (heisenberg - lambda was +12 ms)")
+    parser.add_argument("--class", dest="cls", help="the class graded (default: the labels' target)")
     parser.add_argument("--csv", type=Path, help="also write a row per trial to this CSV file")
     args = parser.parse_args()
     labels = L.load(args.labels)

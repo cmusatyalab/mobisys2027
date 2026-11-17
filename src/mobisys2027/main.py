@@ -68,6 +68,7 @@ import atexit
 import csv
 import fnmatch
 import glob
+import hashlib
 import json
 import os
 import queue
@@ -1403,14 +1404,56 @@ def restart_stopped_by_runner(client: Daemon) -> None:
         )
 
 
+_sha256_cache: dict[tuple[str, int, int], str] = {}
+
+
+def file_sha256(path: Path) -> str:
+    """path's SHA-256, in hex, cached while its size and mtime stay the same."""
+    st = path.stat()
+    key = (str(path.resolve()), st.st_size, st.st_mtime_ns)
+    if key not in _sha256_cache:
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            while chunk := f.read(1 << 20):
+                h.update(chunk)
+        _sha256_cache[key] = h.hexdigest()
+    return _sha256_cache[key]
+
+
+def daemon_sha256(d: DaemonCfg, name: str) -> str | None:
+    """The SHA-256 of the file `name` in daemon d's files directory, or None
+    if it isn't there or can't be read (e.g. d has no prefix to ssh to): on
+    this host for a daemon with no prefix, otherwise over ssh."""
+    if not d.prefix:
+        path = Path.home() / REMOTE_FILES_DIR / name
+        return file_sha256(path) if path.is_file() else None
+    if not d.ssh_host:
+        return None
+    files_dir = '"$HOME"/' + shlex.quote(REMOTE_FILES_DIR.rstrip("/"))
+    r = subprocess.run(ssh(d.ssh_host, f"sha256sum {files_dir}/{shlex.quote(name)} 2>/dev/null"),
+                       capture_output=True, text=True)
+    out = r.stdout.split()
+    return out[0] if r.returncode == 0 and out and len(out[0]) == 64 else None
+
+
+def already_there(d: DaemonCfg, f: "Upload", what: str) -> bool:
+    """Whether daemon d already has upload f, byte for byte (by SHA-256), so
+    it needn't be pushed again; logs it if so."""
+    if daemon_sha256(d, f.name) != file_sha256(f.path):
+        return False
+    log(f"{what} is already on {d.key} (same SHA-256); not pushing it")
+    return True
+
+
 def push_uploads(client: Daemon, exp: Experiment) -> None:
     """Pushes the experiment directory's uploads to every daemon's files
     directory (STEELEAGLE_FILES): the orchestrator's and each remote's,
     through the orchestrator, or with rsync if the remote isn't registered.
     Each is saved as its push_as, if set, so a driver's config can name one
-    file for every video. Uploads marked no_upload are not pushed: they are
-    assumed to already be there. Called once per directory, before its first
-    experiment."""
+    file for every video. A daemon that already has a file of that name with
+    the same SHA-256 isn't pushed it again. Uploads marked no_upload are not
+    pushed: they are assumed to already be there. Called once per directory,
+    before its first experiment."""
     pushes = [u for u in exp.uploads if not u.no_upload]
     skipped = [u.name for u in exp.uploads if u.no_upload]
     if skipped:
@@ -1424,6 +1467,8 @@ def push_uploads(client: Daemon, exp: Experiment) -> None:
     for f in pushes:
         what = f.path.name + (f" as {f.name}" if f.name != f.path.name else "")
         for d in exp.remotes:
+            if already_there(d, f, what):
+                continue
             remote = find_remote(listing, d) if listing else None
             if remote is not None:
                 log(f"pushing {what} to remote {d.key} ({remote.ip}) through the orchestrator")
@@ -1442,6 +1487,8 @@ def push_uploads(client: Daemon, exp: Experiment) -> None:
                 subprocess.run(cmd, check=True)
             else:
                 raise RuntimeError(f"remote {d.key} is not registered with the orchestrator and has no prefix to rsync to")
+        if already_there(exp.orchestrator, f, what):
+            continue
         log(f"pushing {what} to orchestrator {exp.orchestrator.key}")
         client.transfer_file(f.path, name=f.name)
 

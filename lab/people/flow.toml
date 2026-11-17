@@ -1,0 +1,67 @@
+# rgb -> detection_qnn (YOLO, low confidence) and box_rerank, which picks the
+# target among YOLO's boxes, or none (a dead end: its pick is its result,
+# logged in mb/candidates.csv, and by detection_log in mb/boxes.csv). box_rerank.reintegration -> webp_encoder
+# ==network==> webp_decoder -> verifier (Qwen3-VL), whose yes/no box_rerank
+# learns from. Frames never wait on the network.
+
+[[producers]]
+name = "vehicle.rgb"
+tokens = 1
+
+[[producers]]
+name = "local.box_rerank.reintegration"
+tokens = 1
+
+[[engines]]
+name = "local.detection_qnn"
+location = "local"
+
+[[engines]]
+name = "local.box_rerank"
+location = "local"
+
+[[engines]]
+name = "local.detection_log"
+location = "local"
+
+[[engines]]
+name = "local.webp_encoder"
+location = "local"
+
+[[engines]]
+name = "remote.webp_decoder"
+location = "remote"
+
+[[engines]]
+name = "remote.verifier"
+location = "remote"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.detection_qnn"
+timeout = "2s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.box_rerank"
+timeout = "2s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.detection_log"
+timeout = "2s"
+
+[[edges]]
+from = "local.box_rerank.reintegration"
+to = "local.webp_encoder"
+timeout = "2s"
+
+[[edges]]
+from = "local.webp_encoder"
+to = "remote.webp_decoder"
+timeout = "30s"
+
+[[edges]]
+from = "remote.webp_decoder"
+to = "remote.verifier"
+timeout = "30s"
