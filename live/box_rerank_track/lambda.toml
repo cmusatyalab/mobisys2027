@@ -31,8 +31,10 @@
 # Re-encodes the decoded crops as H.264, the only video the GCS streams, so
 # box_rerank's crops can be watched there. In software (x264, the default);
 # each crop is scaled to 448x448, so the stream keeps one size whatever the
-# crop's. Keyframes are forced after 150 ms without a frame (the default), so
-# each crop, arriving about once a second, decodes on its own.
+# crop's. Scaled before converting: the plugin appends I420 caps for x264,
+# and GStreamer here can't parse two caps filters in a row. Keyframes are
+# forced after 150 ms without a frame (the default), so each crop, arriving
+# about once a second, decodes on its own.
 [[services]]
   name = "h264_encoder"
   type = "engine"
@@ -40,7 +42,7 @@
     package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
     plugin = "encoder"
     [services.plugin.args]
-      converter = "videoconvert n-threads=4 ! videoscale ! video/x-raw,width=448,height=448"
+      converter = "videoscale ! video/x-raw,width=448,height=448 ! videoconvert n-threads=4"
 
 # Qwen3-VL 8B on Ollama: "Is the object inside the red box a quadruped robot
 # dog?", the crop enlarged to 224 px first; logs each crop and its answer
