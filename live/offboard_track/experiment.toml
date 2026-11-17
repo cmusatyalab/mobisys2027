@@ -13,7 +13,7 @@ duration = 60
 # Network profiles, in order. heisenberg_case_study_2_offboard.toml (360p) is
 # used for ambient, and heisenberg_case_study_2_offboard_limited.toml (240p)
 # for limited; the ambient link is measured once, at the start of the run
-profiles = ["ambient", "limited"]
+profiles = ["ambient", "delay", "limited"]
 interface = "tailscale0"
 port = 9001
 trials = 3

@@ -19,7 +19,7 @@ warmup = 20
 [experiments.netsim]
 # Network profiles, in order; the ambient link is measured once, at the start
 # of the run, before any service starts
-profiles = ["ambient", "limited", "degraded", "intermittent"]
+profiles = ["ambient", "delay", "limited", "degraded", "intermittent"]
 interface = "tailscale0"
 port = 9001
 trials = 3
