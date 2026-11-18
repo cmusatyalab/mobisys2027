@@ -1,7 +1,8 @@
 # The drone tracks the robot dog by box_rerank's pick (the mission's Track
 # engine): rgb -> detection_qnn (YOLO on the HTP, low confidence) and
 # box_rerank, which picks the dog among YOLO's boxes, or none, on the vehicle.
-# box_rerank.reintegration -> webp_encoder ==network==> webp_decoder ->
+# box_rerank.reintegration -> webp_encoder ==network==> rx_metrics (logs each
+# crop's size, mb/rx.csv) -> webp_decoder ->
 # verifier (Qwen3-VL on lambda), whose yes/no box_rerank learns from; frames
 # never wait on the network. The decoded crops are also re-encoded as H.264 on
 # lambda (h264_encoder) for the GCS, to watch what box_rerank sends; with the
@@ -38,6 +39,10 @@ location = "local"
 [[engines]]
 name = "local.webp_encoder"
 location = "local"
+
+[[engines]]
+name = "remote.rx_metrics"
+location = "remote"
 
 [[engines]]
 name = "remote.webp_decoder"
@@ -77,8 +82,14 @@ from = "local.box_rerank.reintegration"
 to = "local.webp_encoder"
 timeout = "30s"
 
+# rx_metrics logs each crop as it arrives (mb/rx.csv on lambda), then passes it on
 [[edges]]
 from = "local.webp_encoder"
+to = "remote.rx_metrics"
+timeout = "30s"
+
+[[edges]]
+from = "remote.rx_metrics"
 to = "remote.webp_decoder"
 timeout = "30s"
 

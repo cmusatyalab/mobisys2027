@@ -20,7 +20,7 @@ fps = 10.0
 no_loop = true
 frame_log = "mb/frames.csv"
 
-# YOLO26 on the HTP (detection-qnn, COCO): early discard of frames with no person
+# YOLO26 on the HTP (detection-qnn, YOLO26-M 640x384, COCO + robotic dog): early discard of frames with no person
 [[services]]
 name = "yolo"
 type = "engine"
@@ -28,6 +28,7 @@ type = "engine"
 plugin = "detection-qnn"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
 [services.plugin.args]
+model = "libcoco81_yolo26m_640x384_quant.so"
 only_classes = ["person"]
 early_discard = true
 confidence = 0.5

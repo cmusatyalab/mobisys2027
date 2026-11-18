@@ -36,6 +36,8 @@ plugin = "detection-qnn"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
 [services.plugin.args]
 backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
+# YOLO26-M at 640x384, fine-tuned on COCO plus the robotic dog
+model = "libcoco81_yolo26m_640x384_quant.so"
 only_classes = ["person"]
 confidence = 0.25
 nms_score_threshold = 0.25

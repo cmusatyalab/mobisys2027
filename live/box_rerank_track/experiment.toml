@@ -24,6 +24,10 @@ interface = "tailscale0"
 port = 9001
 trials = 3
 
+# The verifier's prompt (lambda.toml), from media/
+[[uploads]]
+file = "robodog.webp"
+
 # heisenberg.toml and lambda.toml, for every profile
 [daemons]
 [daemons.lambda]
@@ -33,8 +37,12 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
 [results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
+# rx_metrics' log of each crop reaching lambda (size, timestamps): the bytes sent
+rx = "lambda/root/.local/share/steeleagle/files/mb/rx.csv"
+# box_rerank's candidates.csv and detection_log's boxes.csv, on the drone. A
+# result, cleared before and moved off after each trial: they keep their
+# names from trial to trial, which a defer_pull catalog doesn't collect
+boxes = "heisenberg/root/.local/share/steeleagle/files/mb/"
 [catalogs] # The sources will be copied; defer_pull ones are moved on their host into ~/.local/share/steeleagle/files/<experiment>_<profile>_<trial>_<catalog>/ instead, to be transferred later
-# box_rerank's candidates.csv and detection_log's boxes.csv, on the drone
-boxes = { path = "heisenberg/root/.local/share/steeleagle/files/mb/*", defer_pull = true }
 box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
 verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"

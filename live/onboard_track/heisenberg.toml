@@ -26,8 +26,9 @@
     [services.plugin.args]
       backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
       confidence = 0.5
-      labels = "dog_extended.txt"
-      model = "libdog_extended_s640_v26_dogcalib_quant.so"
+      # YOLO26-M at 640x384, fine-tuned on the robotic dog alone (its one class,
+      # "robotic dog", from the .labels beside it)
+      model = "librobodog_yolo26m_640x384_quant.so"
       nms_score_threshold = 0.5
 
 [[services]]

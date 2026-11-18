@@ -61,6 +61,22 @@ CLIP_PLUGINS = frozenset({"cliped", "box_rerank"})
 # The stream 2.1.1.1 (YOLO early discard) sends, by netsim profile: 480p on
 # normal's 2-3 Mbps, 240p on the slower ones
 ED_RESOLUTION = {"normal": "480p", "other": "240p"}
+# YOLO26-M at 640x384, quantized for the HTP, fine-tuned on COCO plus the
+# robotic dog (yolo26-dog-qnn, built 2026-11-17): every experiment's YOLO but
+# 1.2.4's; its 81 class names are in the .labels beside it. It replaced the
+# stock 640x640 small model (libs640_v26_quant.so)
+SEARCH_MODEL = "libcoco81_yolo26m_640x384_quant.so"
+# 1.2.4's models, in the daemon's models directory: the stock 640x640 small
+# model the experiments used before SEARCH_MODEL, then the YOLO26 sizes
+# fine-tuned on COCO plus the robotic dog, at 640x384
+YOLO26_SIZES = {
+    "base_s640": "libs640_v26_quant.so",
+    **{k: f"libcoco81_yolo26{k}_640x384_quant.so" for k in ("n", "s", "m", "l")},
+    # The stock COCO models (yolo26-nsmlx-...-2026-11-18), which accuracy.py
+    # can score (80 classes): every size at 640x384, and x at 640x640 too
+    **{f"stock_{k}": f"lib{k}640x384_v26_quant.so" for k in ("n", "s", "m", "l", "x")},
+    "stock_x640": "libx640_v26_quant.so",
+}
 # The send queue of every reintegrating engine (detection-crop, cliped,
 # patchcore-score): room to wait out an outage. Their reintegration delivers
 # one item at a time and resends on the flow's events alone (its producer has
@@ -217,8 +233,13 @@ def drone(src: Source, pad: bool) -> Service:
                            + ("; hardware decoder" if src.kind == "video" else ""))
 
 
-def qnn(confidence=None, person=True, early_discard=True) -> Service:
+def qnn(confidence=None, person=True, early_discard=True, model=None) -> Service:
+    """detection-qnn running `model`, by default SEARCH_MODEL."""
     args: dict = {}
+    if model:
+        # A .so in the daemon's models directory; its class names are read from
+        # the <model>.labels beside it, if there is one
+        args["model"] = model
     if person:
         args["only_classes"] = ["person"]
     if early_discard:
@@ -228,8 +249,11 @@ def qnn(confidence=None, person=True, early_discard=True) -> Service:
         args["confidence"] = confidence
         args["nms_score_threshold"] = confidence
     what = "early discard of frames with no person" if early_discard else "every frame forwarded"
-    return Service("yolo", "detection-qnn", "engines/detection-qnn", args,
-                   comment=f"YOLO26 on the HTP (detection-qnn, COCO){': ' + what if args else ''}")
+    comment = f"YOLO26 on the HTP (detection-qnn, COCO){': ' + what if args else ''}"
+    if not model:
+        args = {"model": SEARCH_MODEL, **args}
+        comment = comment.replace("(detection-qnn, COCO)", "(detection-qnn, YOLO26-M 640x384, COCO + robotic dog)")
+    return Service("yolo", "detection-qnn", "engines/detection-qnn", args, comment=comment)
 
 
 def h264_encoder() -> Service:
@@ -464,7 +488,19 @@ def microbenchmarks() -> list[Dir]:
     for d in (local, remote, fusion):
         for e in d.exps:
             e.trials = 3
-    return [local, remote, fusion]
+    # 1.2.1 with each YOLO26 size: rgb -> yolo -> sink_metrics, plus yolo_log
+    # to record what each model detects (a check that it detects at all)
+    sizes = Dir(
+        "1.2-microbenchmarks/1.2.4-local-yolo26-sizes",
+        "1.2.4 local: YOLO26 n/s/m/l (QNN, 640x384, COCO + robotic dog) on fermi, nothing sent",
+        {"flow.toml": flow_toml([("vehicle.rgb", "local.yolo"), ("local.yolo", "local.sink_metrics"),
+                                 ("vehicle.rgb", "local.yolo_log")],
+                                "rgb -> yolo (QNN) -> sink_metrics, all on fermi; rgb -> yolo_log")},
+        [], [Exp(f"parkinglot_{tag}", src, ("normal",),
+                 [drone(src, False), qnn(person=False, early_discard=False, model=model), yolo_log(),
+                  metrics("sink_metrics", False)], trials=3)
+             for tag, model in YOLO26_SIZES.items()])
+    return [local, remote, fusion, sizes]
 
 
 def yolo() -> list[Dir]:

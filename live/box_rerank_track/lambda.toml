@@ -20,6 +20,20 @@
       dump_dir = "gcs_frames"
       http_addr = ":8002"
 
+# Logs each crop as it arrives from heisenberg, before it is decoded, and
+# passes it on: its size and send/receive timestamps (mb/rx.csv), for the
+# bytes actually sent, which no profile measures otherwise (ambient runs no
+# netsim)
+[[services]]
+  name = "rx_metrics"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/metrics@v4_backend_rework"
+    plugin = "metrics"
+    [services.plugin.args]
+      csv_path = "mb/rx.csv"
+      forward_frames = true
+
 [[services]]
   name = "webp_decoder"
   type = "engine"
@@ -43,8 +57,14 @@
     [services.plugin.args]
       converter = "videoscale ! video/x-raw,width=448,height=448 ! videoconvert n-threads=4"
 
-# Qwen3-VL 8B on Ollama: "Is the object inside the red box a quadruped robot
-# dog?", the crop enlarged to 224 px first; logs each crop and its answer
+# Qwen3-VL 30B-A3B on Ollama, prompted with a photo of the robot dog
+# (robodog.webp) in description mode: the model names what the photo shows
+# once ("a quadruped robot dog") and asks of each crop "Is the object inside
+# the red box <that>?", the crop enlarged to 224 px first; logs each crop and
+# its answer. Asked with the photo itself instead (image_mode "image"), it
+# said yes to 25 of 80 non-dog live crops (chairs, bags), against 4. The
+# heartbeat carries the model's longer description of the photo, which
+# box_rerank switches its CLIP prompt to
 [[services]]
   name = "verifier"
   type = "engine"
@@ -54,7 +74,8 @@
     [services.plugin.args]
       log_tiles = true
       min_side = 224
-      prompt = "a quadruped robot dog"
+      image = "robodog.webp"
+      image_mode = "description"
       question = "box"
 
 [simulator]

@@ -21,13 +21,15 @@ decoder = "qtic2vdec"
 no_loop = true
 frame_log = "mb/frames.csv"
 
-# YOLO26 on the HTP (detection-qnn, COCO)
+# YOLO26 on the HTP (detection-qnn, YOLO26-M 640x384, COCO + robotic dog)
 [[services]]
 name = "yolo"
 type = "engine"
 [services.plugin]
 plugin = "detection-qnn"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+[services.plugin.args]
+model = "libcoco81_yolo26m_640x384_quant.so"
 
 # Logs each frame reaching the end of the pipeline
 [[services]]

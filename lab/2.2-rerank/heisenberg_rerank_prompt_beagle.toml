@@ -37,8 +37,9 @@ plugin = "detection-qnn"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
 [services.plugin.args]
 backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
-labels = "dog_extended.txt"
-model = "libdog_extended_s640_v26_dogcalib_quant.so"
+# YOLO26-M at 640x384, fine-tuned on the robotic dog alone (its one class,
+# "robotic dog", from the .labels beside it)
+model = "librobodog_yolo26m_640x384_quant.so"
 confidence = 0.25
 nms_score_threshold = 0.25
 
