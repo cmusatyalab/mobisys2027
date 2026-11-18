@@ -34,14 +34,16 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
 [results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
-# detection_log's frames on the drone, as is (raw/) and with YOLO's boxes
-# drawn (out/), in files/<engine>/ (e.g. 100.65.73.80.detection_log/). A
-# result, cleared before and moved off after each trial: refresh empties it
-# whenever the engine starts, including when the daemon gets its own config
-# back after the trial, and the frames keep their names from trial to trial
-dets = "heisenberg/root/.local/share/steeleagle/files/*.detection_log"
 # The GCS's recording of the drone's H.264 stream (dump_dir in lambda.toml):
 # the only copy of the video the drone saw. Kept in the files directory, as a
 # package reinstall replaces the GCS's own directory
 gcs = "lambda/root/.local/share/steeleagle/files/gcs_frames/"
-[catalogs] # The sources will be copied
+[catalogs] # The sources will be copied; defer_pull ones are moved on their host into ~/.local/share/steeleagle/files/<experiment>_<profile>_<trial>_<catalog>/ instead, to be transferred later
+# detection_log's frames on the drone, as is (raw/) and with YOLO's boxes
+# drawn (out/), in files/<engine>/ (e.g. 100.65.73.80.detection_log/). Kept on
+# heisenberg, not copied: after each trial, the frames it wrote (new, or
+# rewritten, as they keep their names from trial to trial) are moved into
+# files/case_study_2_onboard_<profile>_<trial>_dets/<engine>/{raw,out}/ there,
+# before refresh empties the engine's directory on the next restart; the
+# trial's deferred_dets file names that directory
+dets = { path = "heisenberg/root/.local/share/steeleagle/files/*.detection_log", defer_pull = true }

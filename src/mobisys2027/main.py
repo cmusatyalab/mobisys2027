@@ -1690,26 +1690,77 @@ def remove_result_dirs(exp: Experiment) -> None:
                 log(f"{key}: removed {p}")
 
 
-def deferred_files(exp: Experiment) -> dict[str, set[str]]:
-    """The files each defer_pull catalog names now, before a trial, so that only
-    the ones the trial adds are renamed after it."""
-    return {key: set(source_files(exp, exp.catalogs[key])[1]) for key in sorted(exp.defer_pull)}
+def catalog_files(exp: Experiment, src: str) -> tuple[DaemonCfg, dict[str, tuple[str, str]]]:
+    """The daemon whose host holds catalog src, and every file under what src
+    names (its glob matches, or a directory's entries, as source_files),
+    recursively: {path: (relative path, modification time)}. The relative path
+    is below the match's parent directory, so a matched directory keeps its
+    name and its subdirectories (e.g. 100.65.73.80.detection_log/raw/0.jpeg)."""
+    host, _, rest = src.partition("/")
+    d = exp.daemons[host]
+    path = "/" + rest
+    files: dict[str, tuple[str, str]] = {}
+    if not d.prefix:
+        if glob.has_magic(path):
+            matches = sorted(glob.glob(path))
+        elif os.path.isdir(path):
+            matches = sorted(os.path.join(path, n) for n in os.listdir(path) if not n.startswith("."))
+        else:
+            matches = [path] if os.path.exists(path) else []
+        for m in matches:
+            parent = os.path.dirname(m.rstrip("/"))
+            walk = [(os.path.dirname(m), [], [os.path.basename(m)])] if os.path.isfile(m) else os.walk(m)
+            for root, _, names in walk:
+                for n in names:
+                    f = os.path.join(root, n)
+                    if os.path.isfile(f):
+                        files[f] = (os.path.relpath(f, parent), repr(os.stat(f).st_mtime_ns))
+        return d, files
+    if glob.has_magic(path):
+        expand = f"set -- {path}"  # the remote shell expands the glob
+    else:
+        q = shlex.quote(path)
+        expand = f"if [ -d {q} ]; then set -- {q}/*; else set -- {q}; fi"
+    # Each match, then its files and their modification times, \0-separated
+    script = (f'{expand}; for f in "$@"; do [ -e "$f" ] || continue; printf "M\\0%s\\0" "$f"; '
+              f'find "$f" -type f -printf "%p\\0%T@\\0"; done; true')
+    r = subprocess.run(ssh(d.ssh_host, script), capture_output=True, check=True)
+    fields = r.stdout.decode().split("\0")
+    parent, i = "", 0
+    while i + 1 < len(fields):
+        a, b = fields[i], fields[i + 1]
+        i += 2
+        if a == "M":
+            parent = os.path.dirname(b.rstrip("/"))
+        else:
+            files[a] = (os.path.relpath(a, parent), b)
+    return d, files
 
 
-def defer_pull(exp: Experiment, key: str, before: set[str], profile: str, trial: int) -> None:
-    """Moves the files catalog key gained during the trial into
+def deferred_files(exp: Experiment) -> dict[str, dict[str, str]]:
+    """The files under each defer_pull catalog now, with their modification
+    times, before a trial, so that only the ones the trial adds or rewrites
+    are moved after it: an engine may reuse names from trial to trial
+    (detection_log names its frames by number)."""
+    return {key: {p: m for p, (_, m) in catalog_files(exp, exp.catalogs[key])[1].items()}
+            for key in sorted(exp.defer_pull)}
+
+
+def defer_pull(exp: Experiment, key: str, before: dict[str, str], profile: str, trial: int) -> str | None:
+    """Moves the files catalog key gained or rewrote during the trial into
     <experiment>_<profile>_<trial>_<key>/ in the files directory
-    (STEELEAGLE_FILES) of the host that holds them, to be transferred later.
-    They are moved out of the engine's own directory, since an engine may
-    empty that when it starts (detection_log does, with refresh), which it
-    does on every daemon restart. If the directory exists already (from an
-    earlier run), a new one with the time added is used. A file whose name is
-    taken in it is left where it is, with a warning."""
-    d, paths = source_files(exp, exp.catalogs[key])
-    moves = [p for p in paths if p not in before]
+    (STEELEAGLE_FILES) of the host that holds them, to be transferred later,
+    keeping their paths below the catalog's matches (see catalog_files). They
+    are moved out of the engine's own directory, since an engine may empty
+    that when it starts (detection_log does, with refresh), which it does on
+    every daemon restart. If the directory exists already (from an earlier
+    run), a new one with the time added is used. Returns "<daemon>:<dir>",
+    or None if there was nothing to move."""
+    d, files = catalog_files(exp, exp.catalogs[key])
+    moves = [(p, rel) for p, (rel, mtime) in sorted(files.items()) if before.get(p) != mtime]
     if not moves:
         log(f"warning: {key} has no new files on {d.key} to move")
-        return
+        return None
     name = f"{exp.name}_{profile}_{trial}_{key}"
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     if d.prefix:
@@ -1719,9 +1770,9 @@ def defer_pull(exp: Experiment, key: str, before: set[str], profile: str, trial:
             f'if [ -e "$d" ]; then d="$d-{stamp}"; fi\n'
             'mkdir -p "$d"\necho "$d"\nset +e\n'
         ) + "".join(
-            f'b=$(basename -- {shlex.quote(p)}); '
-            f'if [ -e "$d/$b" ]; then echo "taken $d/$b"; else mv -- {shlex.quote(p)} "$d/$b"; fi\n'
-            for p in moves
+            f't="$d"/{shlex.quote(rel)}; '
+            f'if [ -e "$t" ]; then echo "taken $t"; else mkdir -p "$(dirname -- "$t")" && mv -- {shlex.quote(p)} "$t"; fi\n'
+            for p, rel in moves
         )
         # Sent on stdin, since a long list of files can be over the command
         # line's limit
@@ -1736,15 +1787,17 @@ def defer_pull(exp: Experiment, key: str, before: set[str], profile: str, trial:
             target = target.with_name(f"{name}-{stamp}")
         target.mkdir(parents=True)
         dest, taken = str(target), []
-        for p in moves:
-            new = target / os.path.basename(p)
+        for p, rel in moves:
+            new = target / rel
             if new.exists():
                 taken.append(str(new))
             else:
+                new.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(p, new)
     log(f"deferred {key}: moved {len(moves) - len(taken)} file(s) on {d.key} to {dest}, to be transferred later")
     if taken:
-        log(f"warning: {len(taken)} file(s) of {key} weren't moved, since their name is taken in {dest} (e.g. {taken[0]})")
+        log(f"warning: {len(taken)} file(s) of {key} weren't moved, since their path is taken in {dest} (e.g. {taken[0]})")
+    return f"{d.key}:{dest}"
 
 
 def rsync(exp: Experiment, src: str, dest: Path, move: bool) -> bool:
@@ -2277,7 +2330,7 @@ def drop_trial_rows(run_dir: Path, label: str, trial: int) -> None:
 
 def cleanup(
     exp: Experiment, run_dir: Path, trial_dir: Path, netsim: Netsim, power: PowerMonitor, label: str,
-    profile: str, trial: int, wall_sec: float, deferred_before: dict[str, set[str]], started: bool = True,
+    profile: str, trial: int, wall_sec: float, deferred_before: dict[str, dict[str, str]], started: bool = True,
 ) -> bool:
     """Stops the trial's measurements and collects its files. False if its
     [results] could not all be collected, or none came back."""
@@ -2292,7 +2345,10 @@ def cleanup(
         collected = False
     for key, src in exp.catalogs.items():
         if key in exp.defer_pull:
-            defer_pull(exp, key, deferred_before.get(key, set()), profile, trial)
+            where = defer_pull(exp, key, deferred_before.get(key, {}), profile, trial)
+            if where:
+                # Where the trial's files wait on their host, to find them later
+                (trial_dir / f"deferred_{key}").write_text(where + "\n")
             continue
         log(f"copying {key} from {src}")
         rsync(exp, src, trial_dir / "catalog" / key, move=False)
@@ -2492,7 +2548,7 @@ def run_iperf(exp: Experiment, host: DaemonCfg, ip: str, trial_dir: Path) -> dic
 
 def run_trial(
     client: Daemon, exp: Experiment, vehicle: str, profile: str, run_dir: Path, trial: int,
-    deferred_before: dict[str, set[str]],
+    deferred_before: dict[str, dict[str, str]],
 ) -> None:
     """Runs one trial into run_dir/trial_<n>, adding its stats to
     run_dir/stats_<profile>_<experiment>.csv. deferred_before is what each

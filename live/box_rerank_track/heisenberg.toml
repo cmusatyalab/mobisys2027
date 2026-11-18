@@ -32,9 +32,9 @@
     [services.plugin.args]
       backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
       confidence = 0.25
-      # YOLO26-M at 640x384, fine-tuned on the robotic dog alone (its one class,
+      # YOLO26-S at 640x384, fine-tuned on the robotic dog alone (its one class,
       # "robotic dog", from the .labels beside it)
-      model = "librobodog_yolo26m_640x384_quant.so"
+      model = "librobodog_yolo26s_640x384_quant.so"
       nms_score_threshold = 0.25
 
 # Reports at most one "robotic dog" a frame, for Track: never a box like one
