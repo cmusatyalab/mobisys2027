@@ -137,7 +137,7 @@ NONE = "none"
 AMBIENT = "ambient"
 NO_NETSIM = {NONE, AMBIENT}
 NETSIM_PROFILES = [
-    "normal", "limited", "degraded", "intermittent", "denied", "malicious", "outage", "delay",
+    "normal", "limited", "degraded", "intermittent", "dripfeed", "denied", "malicious", "outage", "delay",
     NONE, AMBIENT,
 ]
 # Points of each trial a hook ([experiments.hooks]) can run at: when the

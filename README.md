@@ -159,7 +159,7 @@ sudo .venv/bin/netsim [-i INTERFACE] [-p PORT] [-f FAILPOINTS] PROFILE
 
 | Option              | Default      | Meaning                                                     |
 |---------------------|--------------|-------------------------------------------------------------|
-| `PROFILE`           | required     | `normal`, `limited`, `degraded`, `intermittent`, `denied`, `malicious`, `outage` or `delay` |
+| `PROFILE`           | required     | `normal`, `limited`, `degraded`, `intermittent`, `dripfeed`, `denied`, `malicious`, `outage` or `delay` |
 | `-i, --interface`   | `tailscale0` | Interface to shape                                          |
 | `-p, --port`        | `9001`       | Port to shape                                               |
 | `-f, --failpoints`  | none         | `malicious` and `outage` only: forced outages, e.g. `30:10,90:5` |
@@ -357,6 +357,7 @@ The profiles, in the order `["*"]` runs them:
 | `limited`      | 500 – 1000                               |
 | `degraded`     | 50 – 100                                 |
 | `intermittent` | 0 – 100, often dropping to 0             |
+| `dripfeed`     | 0 – 50, a steady trickle                 |
 | `denied`       | always 0                                 |
 | `malicious`    | like intermittent, plus `failpoints`     |
 | `outage`       | like normal, plus `failpoints`           |

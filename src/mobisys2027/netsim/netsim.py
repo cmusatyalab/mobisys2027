@@ -11,6 +11,7 @@ Profiles (Kbps):
     limited        500 - 1000
     degraded        50 -  100
     intermittent     0 -  100
+    dripfeed         0 -   50
     denied           0 -    0
     malicious        intermittent, plus --failpoints
     outage           normal, plus --failpoints
@@ -66,6 +67,7 @@ PROFILES: dict[str, Profile] = {
     "limited": Profile(500, 1000, shape=2.0, scale=0.5),
     "degraded": Profile(50, 100, shape=2.0, scale=0.5),
     "intermittent": Profile(0, 100, shape=0.6, scale=0.25),
+    "dripfeed": Profile(0, 50, shape=2.0, scale=0.5),
     "denied": Profile(0, 0, shape=1.0, scale=1.0),
 }
 PROFILES["malicious"] = PROFILES["intermittent"]

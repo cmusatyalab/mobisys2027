@@ -24,6 +24,7 @@ kilo*bytes* per second, so the script avoids it.)
 | `limited`      |      500 |     1000 |                                                   |
 | `degraded`     |       50 |      100 |                                                   |
 | `intermittent` |        0 |      100 | Drops to 0 (port off) on roughly 9% of draws      |
+| `dripfeed`     |        0 |       50 | A steady trickle; almost never drops to 0         |
 | `denied`       |        0 |        0 | Port is always off                                |
 | `malicious`    |        0 |      100 | Intermittent, plus forced outages at `--failpoints` |
 | `outage`       |     2000 |     3000 | Normal, plus forced outages at `--failpoints`       |
@@ -42,7 +43,7 @@ rounded to a whole number of Kbps. A result of 0 shuts the port off.
 
 | Profiles                         | shape | scale | Effect                                |
 |----------------------------------|------:|------:|---------------------------------------|
-| normal, limited, degraded, outage |   2.0 |   0.5 | Clusters around the middle of the range |
+| normal, limited, degraded, dripfeed, outage |   2.0 |   0.5 | Clusters around the middle of the range |
 | intermittent, malicious          |   0.6 |  0.25 | Piles up near 0, so the port drops out |
 
 `--shape` and `--scale` override these.
