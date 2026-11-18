@@ -1,0 +1,52 @@
+# Live mission inference with cliped tracking: the pilot flies the ANAFI by
+# hand from the real GCS on lambda2 while its live inference (Inferred Mission
+# tab, 5 s sections) works out who is being tracked, rewrites the verifier's
+# prompt to them, and deploys its inferred mission (auto_deploy), which the
+# drone starts when its data link drops. The runner only sets the flow (on
+# ENTER, as the lab experiments do) and cuts the link from 60 s to the 120 s
+# end; no mission is loaded by the runner.
+[[experiments]]
+name = "inference_track"
+vehicle = "steppeeagle"
+[experiments.video]
+# A placeholder: the [experiments.video] phase sets the flow, and only a fake
+# drone plays a video; the ANAFI streams its own camera
+video = "anafi_live.mp4"
+flow = "flow.toml"
+# Started on ENTER, once the pilot is flying and live inference is running
+auto = false
+duration = 120
+# box_rerank loads CLIP for ~20 s after it is listed as running
+warmup = 20
+[experiments.netsim]
+profiles = ["outage"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+# From 60 s after the flow is set to the end
+failpoints = [[60, 60]]
+[experiments.hooks]
+# The verifier's last prompt (the inferred description) into the trial
+end = ["sh", "-c", "d=/root/.local/share/steeleagle/files/verifier_live; mkdir -p \"$d\"; [ -e \"$d/prompt.txt\" ] && mv \"$d/prompt.txt\" \"$EXPERIMENT_TRIAL_DIR/verifier_prompt.txt\"; rm -f \"$d\"/replaced-*; true"]
+
+[[uploads]] # the placeholder video: nothing is pushed
+file = "anafi_live.mp4"
+no_upload = true
+
+[daemons]
+[daemons.lambda2]
+orchestrator = true
+prefix = ""
+[daemons.heisenberg]
+prefix = "root@heisenberg:"
+
+[results] # moved off the hosts after each trial
+heisenberg = "heisenberg/root/.local/share/steeleagle/files/mb/"
+lambda2 = "lambda2/root/.local/share/steeleagle/files/mb/"
+# The GCS's recording of the drone's H.264 stream
+gcs = "lambda2/root/.local/share/steeleagle/files/gcs_frames/"
+[catalogs] # copied off the hosts after each trial
+# The verifier's crops in (in/) and the ones it said yes to (out/)
+verifier = "lambda2/root/.local/share/steeleagle/files/*.verifier"
+box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
+verifier_log = "lambda2/root/.local/share/steeleagle/logs/*verifier.log"

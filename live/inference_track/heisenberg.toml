@@ -1,0 +1,96 @@
+# heisenberg (Tachyon, on the drone): the Anafi, stock COCO YOLO on the HTP,
+# and box_rerank, which picks the person the GCS inferred is being tracked
+# among YOLO's boxes for the mission's Track, sending its crops to lambda2's
+# verifier; and the H.264 video to the GCS.
+
+[daemon]
+  cert = ""
+  hostname = "heisenberg"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  orchestrator = "lambda2:9000"
+  port = 9000
+
+[[services]]
+  name = "steppeeagle"
+  type = "vehicle"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/parrot_anafi@v4_backend_rework"
+    plugin = "anafi4k"
+    [services.plugin.args]
+      decoder = "qtic2vdec"
+
+# The default encoder: 360p, no rate control, no B-frames
+[[services]]
+  name = "encoder"
+  type = "engine"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "encoder"
+    [services.plugin.args]
+      convert_threads = 4
+      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=640,height=360"
+      decoder_name = "decoder"
+      encoder = "qtic2venc control-rate=disable b-frames=0 idr-interval=30"
+      fps = 15
+      keyframe_timeout = 0
+
+# YOLO26-S, stock COCO, at a lower confidence than box_rerank's 0.5 so it
+# sees the boxes YOLO is unsure of too
+[[services]]
+  name = "yolo"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-qnn@v4_backend_rework"
+    plugin = "detection-qnn"
+    [services.plugin.args]
+      backend = "/home/particle/cpp_server_build/libs/libQnnHtp.so"
+      confidence = 0.25
+      model = "libs640x384_v26_quant.so"
+      nms_score_threshold = 0.25
+
+# Reports at most one "person" a frame, for Track. Starts on a placeholder
+# prompt and takes the verifier's (ignore_new = false), which the GCS's
+# inference rewrites to its description of the tracked person
+[[services]]
+  name = "box_rerank"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "box_rerank"
+    [services.plugin.args]
+      class = "person"
+      confidence = 0.5
+      detector = "yolo"
+      gate = false
+      ignore_new = false
+      log_candidates = "mb/candidates.csv"
+      # Holds the crops through the outage, as in lab 3.1
+      max_queue = 512
+      prompt = "moving"
+      rank = "prompt"
+      verifier = "verifier"
+
+[[services]]
+  name = "webp_encoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_encoder"
+    [services.plugin.args]
+      quality = 80
+
+# Logs the box box_rerank reports on each frame it decides, and when
+[[services]]
+  name = "box_log"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection-log@v4_backend_rework"
+    plugin = "detection-log"
+    [services.plugin.args]
+      csv = "mb/boxes.csv"
+      detector = "box_rerank"
+      images = false

@@ -1,0 +1,128 @@
+# Set on the drone when the trial starts (ENTER), as the lab experiments'
+# flows are. box_rerank picks the person among YOLO's (stock COCO) boxes, on
+# the vehicle, for the Track mission the GCS infers and deploys; the GCS on
+# lambda2 watches the H.264 video:
+# rgb -> yolo, box_rerank, box_log (on the vehicle); rgb -> encoder
+# ==network==> gcs (the pilot's view and its live mission inference) and
+# decoder -> detection (RF-DETR, the boxes inference sees).
+# box_rerank.reintegration -> webp_encoder ==network==> rx_metrics ->
+# webp_decoder -> verifier (Qwen3-VL), whose prompt the inference rewrites to
+# its description of the tracked person and whose yes/no box_rerank learns
+# from. Frames never wait on the network.
+
+[[producers]]
+name = "vehicle.telemetry"
+tokens = 1
+
+[[producers]]
+name = "vehicle.rgb"
+tokens = 1
+
+[[producers]]
+name = "local.box_rerank.reintegration"
+tokens = 1
+
+[[engines]]
+name = "remote.gcs"
+location = "remote"
+
+[[engines]]
+name = "local.yolo"
+location = "local"
+
+[[engines]]
+name = "local.box_rerank"
+location = "local"
+
+[[engines]]
+name = "local.box_log"
+location = "local"
+
+[[engines]]
+name = "local.encoder"
+location = "local"
+
+[[engines]]
+name = "remote.decoder"
+location = "remote"
+
+[[engines]]
+name = "remote.detection"
+location = "remote"
+
+[[engines]]
+name = "local.webp_encoder"
+location = "local"
+
+[[engines]]
+name = "remote.rx_metrics"
+location = "remote"
+
+[[engines]]
+name = "remote.webp_decoder"
+location = "remote"
+
+[[engines]]
+name = "remote.verifier"
+location = "remote"
+
+[[edges]]
+from = "vehicle.telemetry"
+to = "remote.gcs"
+timeout = "1s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.yolo"
+timeout = "1s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.box_rerank"
+timeout = "1s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.box_log"
+timeout = "1s"
+
+[[edges]]
+from = "vehicle.rgb"
+to = "local.encoder"
+timeout = "1s"
+
+[[edges]]
+from = "local.encoder"
+to = "remote.gcs"
+timeout = "1s"
+
+[[edges]]
+from = "local.encoder"
+to = "remote.decoder"
+timeout = "1s"
+
+[[edges]]
+from = "remote.decoder"
+to = "remote.detection"
+timeout = "1s"
+
+# The crops wait for the link, off the frame path
+[[edges]]
+from = "local.box_rerank.reintegration"
+to = "local.webp_encoder"
+timeout = "30s"
+
+[[edges]]
+from = "local.webp_encoder"
+to = "remote.rx_metrics"
+timeout = "30s"
+
+[[edges]]
+from = "remote.rx_metrics"
+to = "remote.webp_decoder"
+timeout = "30s"
+
+[[edges]]
+from = "remote.webp_decoder"
+to = "remote.verifier"
+timeout = "30s"

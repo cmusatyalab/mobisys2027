@@ -1,0 +1,90 @@
+# lambda2 (orchestrator): the real GCS, which the pilot flies the drone from
+# and runs live mission inference in (5 s sections, with RF-DETR's boxes); on
+# Track, it checks the person box_rerank follows against the verifier's prompt
+# and, if it isn't them, writes its description as the verifier's new prompt.
+# It deploys each section's mission to the drone, to start when the link drops.
+# GPU 1 holds Qwen3-VL 30B (Ollama, kept loaded); RF-DETR 2XLarge goes on GPU 0.
+
+[daemon]
+  cert = ""
+  hostname = "lambda2"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  port = 9000
+
+[[services]]
+  auth = "admin"
+  name = "gcs"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/gcs@v4_backend_rework"
+    plugin = "gcs"
+    [services.plugin.args]
+      dump_dir = "/root/.local/share/steeleagle/files/gcs_frames"
+      http_addr = ":8003"
+      # Live inference's defaults (the Inferred Mission tab can override the
+      # detectors per run): the Track detector is named as in Flow Builder,
+      # by host. auto_deploy compiles and loads each section's mission on the
+      # vehicle and sets its data failsafe to start it, so the outage starts
+      # the inferred Track
+      [services.plugin.args.ai.inferred_mission]
+        section_seconds = 5.0
+        detector = "detection"
+        local_detector = "heisenberg.box_rerank"
+        verifier = "qwen3-vl:30b-a3b-instruct"
+        verifier_live_dir = "/root/.local/share/steeleagle/files/verifier_live"
+        auto_deploy = true
+
+[[services]]
+  name = "decoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "decoder"
+
+# RF-DETR 2XLarge, stock COCO (torch for CUDA 12.6: the default CUDA 13 build
+# needs a newer driver than lambda2's and falls back to the CPU)
+[[services]]
+  name = "detection"
+  type = "engine"
+  [services.plugin]
+    environment = "cuda126"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/detection@v4_backend_rework"
+    plugin = "detection"
+    [services.plugin.args]
+      model = "rfdetr"
+      rfdetr_size = "2xlarge"
+
+# Logs each crop as it arrives from heisenberg (mb/rx.csv), and passes it on
+[[services]]
+  name = "rx_metrics"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/metrics@v4_backend_rework"
+    plugin = "metrics"
+    [services.plugin.args]
+      csv_path = "mb/rx.csv"
+      forward_frames = true
+
+[[services]]
+  name = "webp_decoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_decoder"
+
+# Qwen3-VL 30B (Ollama) answers box_rerank's crops; its prompt follows
+# verifier_live/prompt.txt, which the end hook moves into the trial directory
+[[services]]
+  name = "verifier"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "verifier"
+    [services.plugin.args]
+      live = "verifier_live"
+      log_tiles = true
+      min_side = 224
+      prompt = "moving"
+      question = "box"

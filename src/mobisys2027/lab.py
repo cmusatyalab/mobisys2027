@@ -132,6 +132,15 @@ SOURCES = {
         # MMLA: four African painted dog clips spliced into zebra and giraffe
         # footage, 5% dog (scripts/prepare_datasets.py's MMLA_CLIPS)
         Source("mmla", "mmla", "images", 4000, fps=IMAGE_FPS, target="dog"),
+        # person_track (a Parrot ANAFI flight: patrol, then tracking a person in a
+        # red hoodie), its first tracking section cut out and encoded at 720p
+        # (libx264 CRF 18, 30-frame GOP, no B-frames); the re-encode drops the
+        # ANAFI telemetry track, so the fake drone sends no telemetry.
+        # 2:30-6:10 of the original; it half-starts tracking at ~3:00, goes back
+        # to patrolling, and tracks fully from 5:06 (t = 156 s). The second
+        # section (7:00-9:10, person_track_2.mp4) was dropped: the hoodie is in
+        # view too briefly before tracking for inference to recognize it
+        Source("person_track_1", "person_track_1.mp4", "video", 6594, target=L.PERSON),
     ]
 }
 VIDEOS3 = ("parkinglot", "traintrack", "street")
@@ -171,7 +180,17 @@ class Service:
             out.append(f'environment = "{self.environment}"')
         if self.args:
             out.append("[services.plugin.args]")
-            out += [f"{k} = {toml_value(v)}" for k, v in self.args.items()]
+            out += [f"{k} = {toml_value(v)}" for k, v in self.args.items() if not isinstance(v, dict)]
+
+            # A dict arg is a table of its own, after the plain args
+            def tables(prefix, d):
+                for k, v in d.items():
+                    if isinstance(v, dict):
+                        out.append(f"[{prefix}.{k}]")
+                        out.extend(f"{kk} = {toml_value(vv)}" for kk, vv in v.items() if not isinstance(vv, dict))
+                        tables(f"{prefix}.{k}", v)
+
+            tables("services.plugin.args", self.args)
         return "\n".join(out)
 
 
@@ -337,6 +356,12 @@ class Exp:
     # fermi's config for a profile, where it differs from `fermi`: written as
     # fermi_<name>_<profile>.toml, which the runner uses for that profile
     fermi_by_profile: dict[str, list[Service]] = field(default_factory=dict)
+    # The outage profile's failpoints, [event_time, dead_time] in seconds from
+    # the start of the video, with why
+    outage: list = field(default_factory=list)
+    outage_note: str = ""
+    # Commands run at points of each trial ([experiments.hooks]): hook -> argv
+    hooks: dict[str, list[str]] = field(default_factory=dict)
 
     def toml(self) -> str:
         src = self.source
@@ -360,6 +385,13 @@ class Exp:
             if not fp:
                 raise SystemExit(f"{self.name}: malicious needs failpoints; label {src.name} first")
             lines.append(f"failpoints = {toml_value(fp)}  # while the {src.target} is in view, padded 1 s")
+        if "outage" in self.profiles:
+            if not self.outage:
+                raise SystemExit(f"{self.name}: outage needs failpoints")
+            lines.append(f"failpoints = {toml_value(self.outage)}  # {self.outage_note}")
+        if self.hooks:
+            lines.append("[experiments.hooks]")
+            lines += [f"{k} = {toml_value(v)}" for k, v in self.hooks.items()]
         return "\n".join(lines)
 
 
@@ -373,7 +405,10 @@ class Dir:
     flows: dict[str, str]  # file -> flow toml
     lambda2: list[Service]
     exps: list[Exp]
-    uploads: list[str] = field(default_factory=list)  # media/ files to push
+    uploads: list = field(default_factory=list)  # media/ files to push, or (file, push_as)
+    # More results (moved) and catalogs (copied) than each daemon's mb/: key -> (source, comment)
+    results: dict[str, tuple[str, str]] = field(default_factory=dict)
+    catalogs: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def write(self, root: Path) -> Path:
         d = root / self.path
@@ -401,7 +436,10 @@ class Dir:
         text += [e.toml() + "\n" for e in self.exps]
         text.append("# Pushed to every daemon once, before the first experiment")
         for u in self.uploads:
-            text += ["[[uploads]]", f'file = "{u}"']
+            if isinstance(u, tuple):  # (file, push_as)
+                text += ["[[uploads]]", f'file = "{u[0]}"', f'push_as = "{u[1]}"']
+            else:
+                text += ["[[uploads]]", f'file = "{u}"']
         for s in sources:
             note = ("already in fermi's files directory (videos/ has a copy for its length)" if s.kind == "video"
                     else "a directory of images already in fermi's files directory (scripts/prepare_datasets.py)")
@@ -409,7 +447,14 @@ class Dir:
         text += ["", "[daemons]", "[daemons.lambda2]", "orchestrator = true", 'prefix = ""',
                  "[daemons.fermi]", 'prefix = "root@fermi:"', "",
                  "[results] # moved off the hosts after each trial",
-                 f'fermi = "fermi{FILES}/{LOG_DIR}/"', f'lambda2 = "lambda2{FILES}/{LOG_DIR}/"', ""]
+                 f'fermi = "fermi{FILES}/{LOG_DIR}/"', f'lambda2 = "lambda2{FILES}/{LOG_DIR}/"']
+        for k, (src_, why) in self.results.items():
+            text += [f"# {why}", f"{k} = {toml_value(src_)}"]
+        if self.catalogs:
+            text.append("[catalogs] # copied off the hosts after each trial")
+            for k, (src_, why) in self.catalogs.items():
+                text += [f"# {why}", f"{k} = {toml_value(src_)}"]
+        text.append("")
         (d / "experiment.toml").write_text("\n".join(text))
         return d
 
@@ -675,9 +720,124 @@ def cliped() -> list[Dir]:
              dog_text, True, ("mmla",), DEFAULT_PROFILES, targets=("dog",)),
     ]
 
+# The verifier's live directory on lambda2 (in its files directory): the
+# headless GCS inference writes prompt.txt there, the verifier reads it
+VERIFIER_LIVE = "verifier_live"
+# The prompt box_rerank and its verifier start on, before inference names the
+# tracked person: one the person in the red hoodie isn't, so inference's check
+# of the box it tracks says no and it writes its description instead
+START_PROMPT = "moving"
+# person_track's clips: (when the red hoodie first appears, the clip's
+# length), in seconds of the clip
+TRACKING = {"person_track_1": (31.2, 220.0)}
+# The length of the inference's sections (its default is 15 s): it analyzes a
+# section once it ends
+SECTION_S = 5.0
+# From the hoodie appearing to box_rerank switching to the prompt the GCS
+# inferred. With 15 s sections it was 18.8 s on person_track_1 (2026-11-18):
+# the hoodie at 31.2 s, the section ending at ~45.7 s, its analysis taking
+# 5.2 s, and box_rerank switching at 50.0 s. With 5 s sections it was 15.7 s:
+# the hoodie at 31.2 s, the section ending at ~35 s, its analysis taking 8.3 s
+# (the vision request 6.4 s), the prompt written at ~43.3 s, and box_rerank
+# switching at 46.9 s
+PROMPT_LATENCY_S = 15.7
+# The outage starts this long after the prompt reaches box_rerank, and lasts
+# to the clip's end
+OUTAGE_AFTER_S = 5.0
+
+
+def inference() -> list[Dir]:
+    """3.1: the headless GCS mission inference over the drone's H.264, with the
+    cliped tracking framework (box_rerank and its verifier) on the side."""
+    edges = [
+        ("vehicle.rgb", "local.yolo"), ("vehicle.rgb", "local.box_rerank"), ("vehicle.rgb", "local.box_log"),
+        ("vehicle.rgb", "local.h264_encoder"),
+        # One copy of the H.264 crosses the link; h264_rx fans it out on lambda2
+        ("local.h264_encoder", "remote.h264_rx"),
+        ("remote.h264_rx", "remote.inferred_mission"),
+        ("remote.h264_rx", "remote.h264_decoder"), ("remote.h264_decoder", "remote.detection"),
+        # Reintegration: WebP, to the verifier only; never to the GCS
+        ("local.box_rerank.reintegration", "local.webp_encoder"), ("local.webp_encoder", "remote.rx_metrics"),
+        ("remote.rx_metrics", "remote.webp_decoder"), ("remote.webp_decoder", "remote.verifier")]
+    flow = flow_toml(edges,
+        "rgb -> yolo (COCO), box_rerank, box_log (box_rerank's boxes), h264_encoder (fermi); "
+        "h264_encoder ==network==> h264_rx -> inferred_mission (headless GCS) and h264_decoder -> detection "
+        "(RF-DETR, lambda2); box_rerank.reintegration -> webp_encoder ==network==> rx_metrics -> webp_decoder -> "
+        "verifier (lambda2)")
+
+    def fermi(src, pad):
+        return [
+            drone(src, pad),
+            # The stock COCO YOLO26-S at 640x384, at a low confidence so box_rerank sees the unsure boxes too
+            qnn(confidence=0.25, early_discard=False, model=YOLO26_SIZES["stock_s"]),
+            Service("box_rerank", "box_rerank", "engines/cliped", {
+                "detector": "yolo", "verifier": "verifier", "class": "person", "prompt": START_PROMPT,
+                "rank": "prompt", "confidence": 0.5, "gate": False, "ignore_new": False,
+                "log_candidates": f"{LOG_DIR}/candidates.csv", **SEND_QUEUE},
+                comment=f'Picks the tracked person among yolo\'s boxes; starts on "{START_PROMPT}" and follows the '
+                        "verifier's prompt heartbeat (ignore_new off), so the prompt inference writes; logs "
+                        "every candidate"),
+            Service("box_log", "detection-log", "engines/detection-log", {
+                "detector": "box_rerank", "images": False, "csv": f"{LOG_DIR}/boxes.csv"},
+                comment="Logs the box box_rerank reports on each frame; no images"),
+            Service("h264_encoder", "encoder", "defaults/h264", {
+                "decoder_name": "h264_decoder",
+                "converter": "qtivtransform ! video/x-raw(memory:GBM),format=NV12",
+                "encoder": "qtic2venc control-rate=VBR-CFR target-bitrate=1500000 b-frames=0 idr-interval=30",
+            }, environment="native",
+                comment="The Tachyon's hardware H.264 encoder at 1.5 Mbps (VBR), under outage's 2-3 Mbps"),
+            webp_encoder(),
+        ]
+
+    exps = []
+    for name, (appears, length) in TRACKING.items():
+        src = SOURCES[name]
+        at = round(appears + PROMPT_LATENCY_S + OUTAGE_AFTER_S, 1)
+        exps.append(Exp(name, src, ("outage",), fermi(src, True), lossy=True, trials=1, targets=(L.PERSON,),
+                        outage=[[at, round(length - at, 1)]],
+                        outage_note=f"{OUTAGE_AFTER_S:g} s after the inferred prompt reaches box_rerank (the hoodie "
+                                    f"appears at {appears:g} s, +{PROMPT_LATENCY_S:g} s) to the video's end",
+                        hooks={"end": ["sh", "-c", (
+                            f'd={FILES}/{VERIFIER_LIVE}; mkdir -p "$d"; '
+                            f'[ -e "$d/prompt.txt" ] && mv "$d/prompt.txt" "$EXPERIMENT_TRIAL_DIR/verifier_prompt.txt"; '
+                            f'rm -f "$d"/replaced-*; true')]}))
+    gcs = Service("inferred_mission", "inferred_mission_headless", "defaults/gcs", {
+        "vehicle": "drone", "camera": "rgb", "flow": "inference_flow.toml",
+        "detector": "detection",
+        # The Track detector by its name in the planning flow, a template: {daemon}.{engine}
+        "local_detector": "fermi.box_rerank",
+        "verifier": "qwen3-vl:30b-a3b-instruct", "verifier_live_dir": f"{FILES}/{VERIFIER_LIVE}",
+        "auto_deploy": False,
+        "ai": {"inferred_mission": {"section_seconds": SECTION_S}}},
+        comment=f"The headless GCS mission inference: {SECTION_S:g} s sections at 1 fps, with RF-DETR's boxes; on Track, "
+                "checks the tracked box against the verifier's prompt and, if it isn't it, writes its "
+                "description to the verifier's live prompt. No deploy: the fake drone can't fly")
+    lambda2 = [
+        metrics("h264_rx", True), gcs, H264_DECODER,
+        rfdetr(name="detection"),
+        metrics("rx_metrics", True), WEBP_DECODER,
+        Service("verifier", "verifier", "engines/cliped", {
+            "prompt": START_PROMPT, "question": "box", "min_side": 224, "live": VERIFIER_LIVE, "log_tiles": True},
+            comment="The VLM (Qwen3-VL 30B, Ollama) that answers box_rerank's crops; its prompt follows "
+                    f"{VERIFIER_LIVE}/prompt.txt, which the end hook moves into the trial directory"),
+    ]
+    # The inference's planning flow, which binds Track to box_rerank: the same
+    # flow as a Flow Builder template, whose nodes are named by host
+    # ({daemon}.{engine}, {vehicle}.{stream}), not local./remote.
+    planning = "# The planning flow of 3.1's inference: flow.toml as a template, named by host\n" + flow
+    for prefix, host in (("vehicle", "drone"), ("local", "fermi"), ("remote", "lambda2")):
+        planning = planning.replace(f'"{prefix}.', f'"{host}.')
+    return [Dir("3.1-inference", "3.1 headless GCS mission inference, with cliped tracking (box_rerank), outage",
+                {"flow.toml": flow, "planning_flow.toml": planning}, lambda2, exps,
+                [("planning_flow.toml", "inference_flow.toml")],
+                results={"inference": (f"lambda2{FILES}/inferred_mission_headless/",
+                                       "The inference's runs: each section's record, frames and target.png")},
+                catalogs={"verifier": (f"lambda2{FILES}/*.verifier",
+                                       "The verifier's crops in (in/) and the ones it said yes to (out/)")})]
+
 
 def all_dirs() -> list[Dir]:
-    return [*microbenchmarks(), *yolo(), *change_detection(), *cliped()]
+    return [*microbenchmarks(), *yolo(), *change_detection(), *cliped(), *inference()]
 
 
 def main(argv=None):
