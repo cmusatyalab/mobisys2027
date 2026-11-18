@@ -1765,14 +1765,21 @@ def defer_pull(exp: Experiment, key: str, before: dict[str, str], profile: str, 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     if d.prefix:
         files_dir = '"$HOME"/' + shlex.quote(REMOTE_FILES_DIR.rstrip("/"))
+        # In batches, a directory at a time (one mkdir, and xargs runs mv on
+        # many files at once): a process per file moves only ~30 files/s on
+        # a Tachyon. mv -n leaves a file whose name is taken where it is,
+        # which the last line then reports
+        groups: dict[str, list[str]] = {}
+        for p, rel in moves:
+            groups.setdefault(os.path.dirname(rel), []).append(shlex.quote(p))
         script = (
             f"set -e\nd={files_dir}/{shlex.quote(name)}\n"
             f'if [ -e "$d" ]; then d="$d-{stamp}"; fi\n'
             'mkdir -p "$d"\necho "$d"\nset +e\n'
-        ) + "".join(
-            f't="$d"/{shlex.quote(rel)}; '
-            f'if [ -e "$t" ]; then echo "taken $t"; else mkdir -p "$(dirname -- "$t")" && mv -- {shlex.quote(p)} "$t"; fi\n'
-            for p, rel in moves
+            + "mkdir -p " + " ".join(f'"$d"/{shlex.quote(sub)}' for sub in groups) + "\n"
+            + "".join(f'printf "%s\\0" {" ".join(ps)} | xargs -0 -r mv -n -t "$d"/{shlex.quote(sub)}\n'
+                      for sub, ps in groups.items())
+            + f'for f in {" ".join(q for ps in groups.values() for q in ps)}; do [ -e "$f" ] && echo "taken $f"; done; true\n'
         )
         # Sent on stdin, since a long list of files can be over the command
         # line's limit
@@ -2333,25 +2340,33 @@ def cleanup(
     profile: str, trial: int, wall_sec: float, deferred_before: dict[str, dict[str, str]], started: bool = True,
 ) -> bool:
     """Stops the trial's measurements and collects its files. False if its
-    [results] could not all be collected, or none came back."""
+    [results] could not all be collected, or nothing came back: neither a
+    result nor a defer_pull catalog's files (saved on their host, which
+    counts as collected)."""
     netsim.stop()
     power.stop()  # stopped already, unless stopping the mission failed
     collected = True
     for key, src in exp.results.items():
         log(f"moving {key} from {src}")
         collected &= rsync(exp, src, trial_dir / "result" / key, move=True)
-    if exp.results and not any(p.is_file() for p in (trial_dir / "result").rglob("*")):
-        log("warning: the trial's [results] came back empty")
-        collected = False
+    deferred = False
     for key, src in exp.catalogs.items():
         if key in exp.defer_pull:
             where = defer_pull(exp, key, deferred_before.get(key, {}), profile, trial)
             if where:
                 # Where the trial's files wait on their host, to find them later
                 (trial_dir / f"deferred_{key}").write_text(where + "\n")
+                deferred = True
             continue
         log(f"copying {key} from {src}")
         rsync(exp, src, trial_dir / "catalog" / key, move=False)
+    if exp.results and not any(p.is_file() for p in (trial_dir / "result").rglob("*")):
+        if deferred:
+            log("note: the trial's [results] came back empty, but its deferred catalogs were saved on their "
+                "hosts, so it counts as collected")
+        else:
+            log("warning: the trial's [results] came back empty")
+            collected = False
     if started:
         write_stats(exp, run_dir, netsim, power, label, trial, wall_sec)
     else:
