@@ -1,0 +1,391 @@
+2026-11-18 10:34:42,751 INFO: Found 235 frames in /home/particle/summer_training/images/val
+2026-11-18 10:34:42,759 INFO: Using ground truth labels from: /home/particle/summer_training/labels/val
+2026-11-18 10:34:43,011 INFO: fielda_frame_000001.png: 0 ground truth boxes, 9 predictions
+2026-11-18 10:34:43,012 INFO:   [debug] raw response.detections:
+2026-11-18 10:34:43,012 INFO:     class_name='train' score=0.232 bbox(y_min=0.4694 x_min=0.7568 y_max=0.5972 x_max=1.0000)
+2026-11-18 10:34:43,012 INFO:     class_name='truck' score=0.111 bbox(y_min=0.4694 x_min=0.9276 y_max=0.5824 x_max=0.9995)
+2026-11-18 10:34:43,012 INFO:     class_name='train' score=0.071 bbox(y_min=0.3491 x_min=0.2370 y_max=0.4907 x_max=0.6474)
+2026-11-18 10:34:43,012 INFO:     class_name='train' score=0.030 bbox(y_min=0.4130 x_min=0.1036 y_max=0.5824 x_max=1.0000)
+2026-11-18 10:34:43,012 INFO:     class_name='train' score=0.020 bbox(y_min=0.4194 x_min=0.0021 y_max=0.4759 x_max=0.0859)
+2026-11-18 10:34:43,013 INFO:     class_name='truck' score=0.020 bbox(y_min=0.4694 x_min=0.7526 y_max=0.5685 x_max=0.8245)
+2026-11-18 10:34:43,013 INFO:     class_name='horse' score=0.020 bbox(y_min=0.4944 x_min=0.8380 y_max=0.5861 x_max=0.8896)
+2026-11-18 10:34:43,013 INFO:     class_name='train' score=0.010 bbox(y_min=0.4731 x_min=0.8943 y_max=0.5796 x_max=0.9380)
+2026-11-18 10:34:43,013 INFO:     class_name='train' score=0.010 bbox(y_min=0.3417 x_min=0.0000 y_max=0.4694 x_max=0.1115)
+2026-11-18 10:34:43,238 INFO: fielda_frame_000006.png: 4 ground truth boxes, 30 predictions
+2026-11-18 10:34:43,239 INFO:   [debug] raw response.detections:
+2026-11-18 10:34:43,239 INFO:     class_name='car' score=0.645 bbox(y_min=0.6713 x_min=0.5120 y_max=0.7213 x_max=0.6193)
+2026-11-18 10:34:43,239 INFO:     class_name='truck' score=0.645 bbox(y_min=0.6889 x_min=0.2307 y_max=0.7454 x_max=0.3583)
+2026-11-18 10:34:43,239 INFO:     class_name='car' score=0.574 bbox(y_min=0.6750 x_min=0.4422 y_max=0.7176 x_max=0.4901)
+2026-11-18 10:34:43,239 INFO:     class_name='car' score=0.232 bbox(y_min=0.5963 x_min=0.0755 y_max=0.6250 x_max=0.1073)
+2026-11-18 10:34:43,240 INFO:     class_name='person' score=0.141 bbox(y_min=0.6213 x_min=0.7688 y_max=0.6565 x_max=0.7766)
+2026-11-18 10:34:43,240 INFO:     class_name='car' score=0.121 bbox(y_min=0.6778 x_min=0.5734 y_max=0.7130 x_max=0.6130)
+2026-11-18 10:34:43,240 INFO:     class_name='car' score=0.121 bbox(y_min=0.6176 x_min=0.0677 y_max=0.6463 x_max=0.1073)
+2026-11-18 10:34:43,240 INFO:     class_name='person' score=0.071 bbox(y_min=0.6602 x_min=0.6651 y_max=0.6889 x_max=0.6813)
+2026-11-18 10:34:43,240 INFO:     class_name='person' score=0.060 bbox(y_min=0.6213 x_min=0.7786 y_max=0.6565 x_max=0.7906)
+2026-11-18 10:34:43,240 INFO:     class_name='person' score=0.060 bbox(y_min=0.6361 x_min=0.6693 y_max=0.6713 x_max=0.6771)
+2026-11-18 10:34:43,240 INFO:     class_name='car' score=0.030 bbox(y_min=0.6778 x_min=0.2229 y_max=0.7278 x_max=0.2625)
+2026-11-18 10:34:43,241 INFO:     class_name='car' score=0.030 bbox(y_min=0.6713 x_min=0.2729 y_max=0.7213 x_max=0.3484)
+2026-11-18 10:34:43,241 INFO:     class_name='train' score=0.030 bbox(y_min=0.6389 x_min=0.7646 y_max=0.8657 x_max=1.0000)
+2026-11-18 10:34:43,241 INFO:     class_name='car' score=0.020 bbox(y_min=0.5685 x_min=0.1615 y_max=0.5972 x_max=0.1896)
+2026-11-18 10:34:43,241 INFO:     class_name='person' score=0.020 bbox(y_min=0.7491 x_min=0.8266 y_max=0.8130 x_max=0.8385)
+2026-11-18 10:34:43,241 INFO:     class_name='refrigerator' score=0.020 bbox(y_min=0.7139 x_min=0.9557 y_max=0.8481 x_max=0.9875)
+2026-11-18 10:34:43,241 INFO:     class_name='refrigerator' score=0.020 bbox(y_min=0.7102 x_min=0.9839 y_max=0.8519 x_max=1.0000)
+2026-11-18 10:34:43,242 INFO:     class_name='car' score=0.010 bbox(y_min=0.5185 x_min=0.9875 y_max=0.5324 x_max=0.9953)
+2026-11-18 10:34:43,242 INFO:     class_name='car' score=0.010 bbox(y_min=0.5611 x_min=0.1516 y_max=0.5750 x_max=0.1677)
+2026-11-18 10:34:43,242 INFO:     class_name='truck' score=0.010 bbox(y_min=0.5722 x_min=0.1276 y_max=0.6074 x_max=0.1672)
+2026-11-18 10:34:43,242 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.5935 x_min=0.2786 y_max=0.6009 x_max=0.2865)
+2026-11-18 10:34:43,242 INFO:     class_name='car' score=0.010 bbox(y_min=0.5824 x_min=0.0719 y_max=0.6250 x_max=0.1594)
+2026-11-18 10:34:43,243 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.6000 x_min=0.3964 y_max=0.6213 x_max=0.4005)
+2026-11-18 10:34:43,243 INFO:     class_name='person' score=0.010 bbox(y_min=0.6074 x_min=0.8026 y_max=0.6287 x_max=0.8068)
+2026-11-18 10:34:43,243 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.6111 x_min=0.3943 y_max=0.6250 x_max=0.4021)
+2026-11-18 10:34:43,243 INFO:     class_name='person' score=0.010 bbox(y_min=0.6148 x_min=0.7984 y_max=0.6500 x_max=0.8104)
+2026-11-18 10:34:43,243 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.6361 x_min=0.3984 y_max=0.6435 x_max=0.4062)
+2026-11-18 10:34:43,243 INFO:     class_name='car' score=0.010 bbox(y_min=0.6676 x_min=0.3943 y_max=0.7102 x_max=0.4578)
+2026-11-18 10:34:43,243 INFO:     class_name='person' score=0.010 bbox(y_min=0.7491 x_min=0.8484 y_max=0.8130 x_max=0.8562)
+2026-11-18 10:34:43,244 INFO:     class_name='train' score=0.010 bbox(y_min=0.6815 x_min=0.9042 y_max=0.8370 x_max=0.9995)
+2026-11-18 10:34:43,486 INFO: fielda_frame_000008.png: 4 ground truth boxes, 39 predictions
+2026-11-18 10:34:43,486 INFO:   [debug] raw response.detections:
+2026-11-18 10:34:43,486 INFO:     class_name='truck' score=0.816 bbox(y_min=0.6111 x_min=0.2427 y_max=0.6676 x_max=0.3542)
+2026-11-18 10:34:43,487 INFO:     class_name='car' score=0.715 bbox(y_min=0.5898 x_min=0.5219 y_max=0.6463 x_max=0.6255)
+2026-11-18 10:34:43,487 INFO:     class_name='car' score=0.534 bbox(y_min=0.6000 x_min=0.4104 y_max=0.6500 x_max=0.4979)
+2026-11-18 10:34:43,487 INFO:     class_name='truck' score=0.262 bbox(y_min=0.5898 x_min=0.7688 y_max=0.7593 x_max=0.9120)
+2026-11-18 10:34:43,487 INFO:     class_name='traffic light' score=0.121 bbox(y_min=0.4694 x_min=0.4323 y_max=0.4833 x_max=0.4443)
+2026-11-18 10:34:43,487 INFO:     class_name='traffic light' score=0.111 bbox(y_min=0.4944 x_min=0.4021 y_max=0.5157 x_max=0.4099)
+2026-11-18 10:34:43,487 INFO:     class_name='traffic light' score=0.091 bbox(y_min=0.4731 x_min=0.4302 y_max=0.4806 x_max=0.4380)
+2026-11-18 10:34:43,488 INFO:     class_name='person' score=0.091 bbox(y_min=0.5361 x_min=0.7724 y_max=0.5861 x_max=0.7802)
+2026-11-18 10:34:43,488 INFO:     class_name='traffic light' score=0.081 bbox(y_min=0.5046 x_min=0.4062 y_max=0.5333 x_max=0.4224)
+2026-11-18 10:34:43,488 INFO:     class_name='refrigerator' score=0.071 bbox(y_min=0.6537 x_min=0.9536 y_max=0.7954 x_max=1.0000)
+2026-11-18 10:34:43,488 INFO:     class_name='traffic light' score=0.040 bbox(y_min=0.4759 x_min=0.4302 y_max=0.5046 x_max=0.4464)
+2026-11-18 10:34:43,488 INFO:     class_name='car' score=0.030 bbox(y_min=0.4269 x_min=0.7927 y_max=0.4407 x_max=0.8167)
+2026-11-18 10:34:43,488 INFO:     class_name='car' score=0.030 bbox(y_min=0.4481 x_min=0.1615 y_max=0.4620 x_max=0.1734)
+2026-11-18 10:34:43,488 INFO:     class_name='traffic light' score=0.030 bbox(y_min=0.5398 x_min=0.4042 y_max=0.5537 x_max=0.4161)
+2026-11-18 10:34:43,489 INFO:     class_name='traffic light' score=0.030 bbox(y_min=0.5611 x_min=0.9396 y_max=0.6037 x_max=0.9557)
+2026-11-18 10:34:43,489 INFO:     class_name='car' score=0.030 bbox(y_min=0.4481 x_min=0.1672 y_max=0.4769 x_max=0.1833)
+2026-11-18 10:34:43,489 INFO:     class_name='traffic light' score=0.020 bbox(y_min=0.4056 x_min=0.9917 y_max=0.4194 x_max=0.9995)
+2026-11-18 10:34:43,489 INFO:     class_name='person' score=0.020 bbox(y_min=0.5296 x_min=0.7823 y_max=0.5509 x_max=0.7943)
+2026-11-18 10:34:43,489 INFO:     class_name='person' score=0.020 bbox(y_min=0.5546 x_min=0.6370 y_max=0.5833 x_max=0.6448)
+2026-11-18 10:34:43,490 INFO:     class_name='horse' score=0.020 bbox(y_min=0.6463 x_min=0.8604 y_max=0.7454 x_max=0.9083)
+2026-11-18 10:34:43,490 INFO:     class_name='car' score=0.020 bbox(y_min=0.4343 x_min=0.7964 y_max=0.4630 x_max=0.8203)
+2026-11-18 10:34:43,490 INFO:     class_name='car' score=0.010 bbox(y_min=0.3843 x_min=0.6151 y_max=0.3981 x_max=0.6271)
+2026-11-18 10:34:43,490 INFO:     class_name='car' score=0.010 bbox(y_min=0.4481 x_min=0.9854 y_max=0.4620 x_max=1.0000)
+2026-11-18 10:34:43,490 INFO:     class_name='car' score=0.010 bbox(y_min=0.4407 x_min=0.9875 y_max=0.4546 x_max=1.0000)
+2026-11-18 10:34:43,490 INFO:     class_name='car' score=0.010 bbox(y_min=0.4519 x_min=0.9615 y_max=0.4731 x_max=0.9812)
+2026-11-18 10:34:43,491 INFO:     class_name='car' score=0.010 bbox(y_min=0.4870 x_min=0.7448 y_max=0.5083 x_max=0.7609)
+2026-11-18 10:34:43,491 INFO:     class_name='car' score=0.010 bbox(y_min=0.4870 x_min=0.0818 y_max=0.5222 x_max=0.1177)
+2026-11-18 10:34:43,491 INFO:     class_name='person' score=0.010 bbox(y_min=0.5259 x_min=0.7865 y_max=0.5398 x_max=0.7984)
+2026-11-18 10:34:43,491 INFO:     class_name='car' score=0.010 bbox(y_min=0.5509 x_min=0.0000 y_max=0.6009 x_max=0.0479)
+2026-11-18 10:34:43,491 INFO:     class_name='car' score=0.010 bbox(y_min=0.5898 x_min=0.0281 y_max=0.6185 x_max=0.0760)
+2026-11-18 10:34:43,491 INFO:     class_name='refrigerator' score=0.010 bbox(y_min=0.6213 x_min=0.9141 y_max=0.7556 x_max=0.9740)
+2026-11-18 10:34:43,491 INFO:     class_name='car' score=0.010 bbox(y_min=0.4481 x_min=0.9557 y_max=0.4769 x_max=0.9635)
+2026-11-18 10:34:43,492 INFO:     class_name='car' score=0.010 bbox(y_min=0.4481 x_min=0.1672 y_max=0.5046 x_max=0.1990)
+2026-11-18 10:34:43,492 INFO:     class_name='car' score=0.010 bbox(y_min=0.4620 x_min=0.9557 y_max=0.4907 x_max=0.9797)
+2026-11-18 10:34:43,492 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.5120 x_min=0.0078 y_max=0.5546 x_max=0.0240)
+2026-11-18 10:34:43,492 INFO:     class_name='person' score=0.010 bbox(y_min=0.5120 x_min=0.8599 y_max=0.5546 x_max=0.8839)
+2026-11-18 10:34:43,492 INFO:     class_name='person' score=0.010 bbox(y_min=0.5546 x_min=0.6250 y_max=0.5972 x_max=0.6411)
+2026-11-18 10:34:43,492 INFO:     class_name='car' score=0.010 bbox(y_min=0.6250 x_min=0.6729 y_max=0.6676 x_max=0.7682)
+2026-11-18 10:34:43,493 INFO:     class_name='truck' score=0.010 bbox(y_min=0.5120 x_min=0.4104 y_max=0.5972 x_max=0.5380)
+2026-11-18 10:34:43,731 INFO: fielda_frame_000009.png: 5 ground truth boxes, 31 predictions
+2026-11-18 10:34:43,732 INFO:   [debug] raw response.detections:
+2026-11-18 10:34:43,732 INFO:     class_name='truck' score=0.877 bbox(y_min=0.3981 x_min=0.2391 y_max=0.4685 x_max=0.3583)
+2026-11-18 10:34:43,732 INFO:     class_name='car' score=0.615 bbox(y_min=0.3981 x_min=0.5219 y_max=0.4546 x_max=0.6255)
+2026-11-18 10:34:43,732 INFO:     class_name='car' score=0.504 bbox(y_min=0.4130 x_min=0.4104 y_max=0.4556 x_max=0.4979)
+2026-11-18 10:34:43,733 INFO:     class_name='person' score=0.322 bbox(y_min=0.3454 x_min=0.6151 y_max=0.3806 x_max=0.6271)
+2026-11-18 10:34:43,733 INFO:     class_name='person' score=0.111 bbox(y_min=0.3454 x_min=0.7703 y_max=0.3954 x_max=0.7823)
+2026-11-18 10:34:43,733 INFO:     class_name='traffic light' score=0.081 bbox(y_min=0.2963 x_min=0.4302 y_max=0.3037 x_max=0.4380)
+2026-11-18 10:34:43,733 INFO:     class_name='person' score=0.060 bbox(y_min=0.3352 x_min=0.8682 y_max=0.3639 x_max=0.8760)
+2026-11-18 10:34:43,733 INFO:     class_name='car' score=0.050 bbox(y_min=0.2324 x_min=0.8026 y_max=0.2537 x_max=0.8224)
+2026-11-18 10:34:43,734 INFO:     class_name='car' score=0.050 bbox(y_min=0.2602 x_min=0.1531 y_max=0.2815 x_max=0.1651)
+2026-11-18 10:34:43,734 INFO:     class_name='refrigerator' score=0.050 bbox(y_min=0.4657 x_min=0.9458 y_max=0.6148 x_max=1.0000)
+2026-11-18 10:34:43,734 INFO:     class_name='person' score=0.050 bbox(y_min=0.3204 x_min=0.8641 y_max=0.3769 x_max=0.8802)
+2026-11-18 10:34:43,734 INFO:     class_name='truck' score=0.050 bbox(y_min=0.3843 x_min=0.7646 y_max=0.6111 x_max=1.0000)
+2026-11-18 10:34:43,734 INFO:     class_name='person' score=0.040 bbox(y_min=0.3352 x_min=0.7844 y_max=0.3917 x_max=0.8005)
+2026-11-18 10:34:43,734 INFO:     class_name='car' score=0.030 bbox(y_min=0.2111 x_min=0.9974 y_max=0.2324 x_max=1.0000)
+2026-11-18 10:34:43,734 INFO:     class_name='traffic light' score=0.030 bbox(y_min=0.2852 x_min=0.4302 y_max=0.2991 x_max=0.4464)
+2026-11-18 10:34:43,735 INFO:     class_name='bus' score=0.020 bbox(y_min=0.1296 x_min=0.5995 y_max=0.2148 x_max=0.6750)
+2026-11-18 10:34:43,735 INFO:     class_name='traffic light' score=0.020 bbox(y_min=0.1935 x_min=0.0818 y_max=0.2222 x_max=0.0938)
+2026-11-18 10:34:43,735 INFO:     class_name='traffic light' score=0.020 bbox(y_min=0.2889 x_min=0.4260 y_max=0.2963 x_max=0.4339)
+2026-11-18 10:34:43,735 INFO:     class_name='traffic light' score=0.020 bbox(y_min=0.3204 x_min=0.4021 y_max=0.3343 x_max=0.4099)
+2026-11-18 10:34:43,735 INFO:     class_name='train' score=0.020 bbox(y_min=0.1787 x_min=0.0042 y_max=0.2352 x_max=0.0917)
+2026-11-18 10:34:43,736 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.2176 x_min=0.0021 y_max=0.2676 x_max=0.0141)
+2026-11-18 10:34:43,736 INFO:     class_name='car' score=0.010 bbox(y_min=0.2324 x_min=0.8026 y_max=0.2537 x_max=0.8068)
+2026-11-18 10:34:43,736 INFO:     class_name='car' score=0.010 bbox(y_min=0.2639 x_min=0.1693 y_max=0.2926 x_max=0.1974)
+2026-11-18 10:34:43,736 INFO:     class_name='car' score=0.010 bbox(y_min=0.2713 x_min=0.9698 y_max=0.2852 x_max=0.9896)
+2026-11-18 10:34:43,736 INFO:     class_name='potted plant' score=0.010 bbox(y_min=0.3315 x_min=0.9021 y_max=0.3667 x_max=0.9141)
+2026-11-18 10:34:43,736 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.3528 x_min=0.4021 y_max=0.3602 x_max=0.4099)
+2026-11-18 10:34:43,736 INFO:     class_name='person' score=0.010 bbox(y_min=0.3565 x_min=0.6193 y_max=0.3852 x_max=0.6234)
+2026-11-18 10:34:43,737 INFO:     class_name='person' score=0.010 bbox(y_min=0.4407 x_min=0.9974 y_max=0.4694 x_max=1.0000)
+2026-11-18 10:34:43,737 INFO:     class_name='refrigerator' score=0.010 bbox(y_min=0.4444 x_min=0.9042 y_max=0.5648 x_max=0.9760)
+2026-11-18 10:34:43,737 INFO:     class_name='dining table' score=0.010 bbox(y_min=0.0000 x_min=0.0000 y_max=0.0167 x_max=0.6792)
+2026-11-18 10:34:43,737 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.3491 x_min=0.4021 y_max=0.3778 x_max=0.4099)
+2026-11-18 10:34:44,021 INFO: fielda_frame_000010.png: 5 ground truth boxes, 27 predictions
+2026-11-18 10:34:44,022 INFO:   [debug] raw response.detections:
+2026-11-18 10:34:44,022 INFO:     class_name='truck' score=0.766 bbox(y_min=0.3028 x_min=0.2391 y_max=0.3806 x_max=0.3583)
+2026-11-18 10:34:44,022 INFO:     class_name='car' score=0.615 bbox(y_min=0.2991 x_min=0.5219 y_max=0.3694 x_max=0.6255)
+2026-11-18 10:34:44,022 INFO:     class_name='car' score=0.574 bbox(y_min=0.3204 x_min=0.4339 y_max=0.3769 x_max=0.4896)
+2026-11-18 10:34:44,022 INFO:     class_name='person' score=0.393 bbox(y_min=0.2537 x_min=0.6016 y_max=0.3037 x_max=0.6094)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.111 bbox(y_min=0.1824 x_min=0.4323 y_max=0.2037 x_max=0.4443)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.071 bbox(y_min=0.2500 x_min=0.4042 y_max=0.2639 x_max=0.4161)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.050 bbox(y_min=0.2074 x_min=0.4021 y_max=0.2361 x_max=0.4099)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.050 bbox(y_min=0.2361 x_min=0.4104 y_max=0.2648 x_max=0.4182)
+2026-11-18 10:34:44,023 INFO:     class_name='truck' score=0.050 bbox(y_min=0.3065 x_min=0.7646 y_max=0.5333 x_max=1.0000)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.040 bbox(y_min=0.2000 x_min=0.2807 y_max=0.2139 x_max=0.2927)
+2026-11-18 10:34:44,023 INFO:     class_name='traffic light' score=0.040 bbox(y_min=0.1935 x_min=0.2750 y_max=0.2222 x_max=0.2990)
+2026-11-18 10:34:44,024 INFO:     class_name='car' score=0.030 bbox(y_min=0.1361 x_min=0.8063 y_max=0.1500 x_max=0.8260)
+2026-11-18 10:34:44,024 INFO:     class_name='car' score=0.020 bbox(y_min=0.1546 x_min=0.1495 y_max=0.1759 x_max=0.1615)
+2026-11-18 10:34:44,024 INFO:     class_name='person' score=0.020 bbox(y_min=0.3981 x_min=0.8245 y_max=0.4546 x_max=0.8406)
+2026-11-18 10:34:44,024 INFO:     class_name='refrigerator' score=0.020 bbox(y_min=0.3704 x_min=0.9516 y_max=0.5120 x_max=1.0000)
+2026-11-18 10:34:44,024 INFO:     class_name='car' score=0.010 bbox(y_min=0.1259 x_min=0.8182 y_max=0.1472 x_max=0.8302)
+2026-11-18 10:34:44,025 INFO:     class_name='car' score=0.010 bbox(y_min=0.1898 x_min=0.0734 y_max=0.2398 x_max=0.1094)
+2026-11-18 10:34:44,025 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.2426 x_min=0.3484 y_max=0.2565 x_max=0.3526)
+2026-11-18 10:34:44,025 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.2426 x_min=0.4021 y_max=0.2713 x_max=0.4099)
+2026-11-18 10:34:44,025 INFO:     class_name='bench' score=0.010 bbox(y_min=0.2463 x_min=0.5198 y_max=0.2963 x_max=0.5479)
+2026-11-18 10:34:44,025 INFO:     class_name='person' score=0.010 bbox(y_min=0.2537 x_min=0.7745 y_max=0.3037 x_max=0.7865)
+2026-11-18 10:34:44,025 INFO:     class_name='car' score=0.010 bbox(y_min=0.3139 x_min=0.5792 y_max=0.3565 x_max=0.6229)
+2026-11-18 10:34:44,025 INFO:     class_name='person' score=0.010 bbox(y_min=0.3667 x_min=0.8422 y_max=0.4583 x_max=0.8542)
+2026-11-18 10:34:44,026 INFO:     class_name='person' score=0.010 bbox(y_min=0.3630 x_min=0.8604 y_max=0.4620 x_max=0.9083)
+2026-11-18 10:34:44,026 INFO:     class_name='refrigerator' score=0.010 bbox(y_min=0.3667 x_min=0.9120 y_max=0.4731 x_max=0.9516)
+2026-11-18 10:34:44,026 INFO:     class_name='car' score=0.010 bbox(y_min=0.1361 x_min=0.1432 y_max=0.1648 x_max=0.1594)
+2026-11-18 10:34:44,026 INFO:     class_name='traffic light' score=0.010 bbox(y_min=0.1648 x_min=0.4302 y_max=0.1935 x_max=0.4464)
+2026-11-18 10:34:44,279 INFO: fielda_frame_000011.png: 4 ground truth boxes, 27 predictions
+2026-11-18 10:34:44,531 INFO: fielda_frame_000014.png: 5 ground truth boxes, 25 predictions
+2026-11-18 10:34:44,795 INFO: fielda_frame_000016.png: 7 ground truth boxes, 49 predictions
+2026-11-18 10:34:45,011 INFO: fielda_frame_000019.png: 9 ground truth boxes, 75 predictions
+2026-11-18 10:34:45,254 INFO: fielda_frame_000027.png: 9 ground truth boxes, 74 predictions
+2026-11-18 10:34:45,468 INFO: fielda_frame_000028.png: 4 ground truth boxes, 71 predictions
+2026-11-18 10:34:45,677 INFO: fielda_frame_000029.png: 9 ground truth boxes, 92 predictions
+2026-11-18 10:34:45,900 INFO: fielda_frame_000030.png: 23 ground truth boxes, 83 predictions
+2026-11-18 10:34:46,119 INFO: fielda_frame_000031.png: 25 ground truth boxes, 104 predictions
+2026-11-18 10:34:46,333 INFO: fielda_frame_000035.png: 29 ground truth boxes, 87 predictions
+2026-11-18 10:34:46,551 INFO: fielda_frame_000036.png: 17 ground truth boxes, 44 predictions
+2026-11-18 10:34:46,774 INFO: fielda_frame_000037.png: 11 ground truth boxes, 42 predictions
+2026-11-18 10:34:46,987 INFO: fielda_frame_000041.png: 4 ground truth boxes, 20 predictions
+2026-11-18 10:34:47,191 INFO: fielda_frame_000042.png: 2 ground truth boxes, 2 predictions
+2026-11-18 10:34:47,412 INFO: fielda_frame_000043.png: 3 ground truth boxes, 7 predictions
+2026-11-18 10:34:47,655 INFO: fielda_frame_000044.png: 11 ground truth boxes, 18 predictions
+2026-11-18 10:34:47,896 INFO: fielda_frame_000046.png: 10 ground truth boxes, 31 predictions
+2026-11-18 10:34:48,120 INFO: fielda_frame_000047.png: 9 ground truth boxes, 36 predictions
+2026-11-18 10:34:48,365 INFO: fielda_frame_000056.png: 10 ground truth boxes, 35 predictions
+2026-11-18 10:34:48,588 INFO: fielda_frame_000059.png: 10 ground truth boxes, 25 predictions
+2026-11-18 10:34:48,836 INFO: fielda_frame_000060.png: 9 ground truth boxes, 21 predictions
+2026-11-18 10:34:49,095 INFO: fielda_frame_000061.png: 6 ground truth boxes, 20 predictions
+2026-11-18 10:34:49,346 INFO: fielda_frame_000065.png: 5 ground truth boxes, 7 predictions
+2026-11-18 10:34:49,633 INFO: fielda_frame_000066.png: 7 ground truth boxes, 12 predictions
+2026-11-18 10:34:49,825 INFO: fielda_frame_000067.png: 3 ground truth boxes, 15 predictions
+2026-11-18 10:34:50,027 INFO: fielda_frame_000068.png: 2 ground truth boxes, 30 predictions
+2026-11-18 10:34:50,265 INFO: fielda_frame_000069.png: 4 ground truth boxes, 56 predictions
+2026-11-18 10:34:50,507 INFO: fielda_frame_000070.png: 4 ground truth boxes, 43 predictions
+2026-11-18 10:34:50,744 INFO: fielda_frame_000072.png: 5 ground truth boxes, 46 predictions
+2026-11-18 10:34:50,990 INFO: fielda_frame_000074.png: 4 ground truth boxes, 49 predictions
+2026-11-18 10:34:51,246 INFO: fielda_frame_000076.png: 7 ground truth boxes, 46 predictions
+2026-11-18 10:34:51,492 INFO: fielda_frame_000078.png: 6 ground truth boxes, 30 predictions
+2026-11-18 10:34:51,781 INFO: fielda_frame_000079.png: 4 ground truth boxes, 21 predictions
+2026-11-18 10:34:52,072 INFO: fielda_frame_000081.png: 4 ground truth boxes, 17 predictions
+2026-11-18 10:34:52,310 INFO: fielda_frame_000082.png: 2 ground truth boxes, 12 predictions
+2026-11-18 10:34:52,518 INFO: fielda_frame_000083.png: 2 ground truth boxes, 12 predictions
+2026-11-18 10:34:52,729 INFO: fielda_frame_000084.png: 0 ground truth boxes, 12 predictions
+2026-11-18 10:34:52,934 INFO: m19_parkinglot_stairway_frame_000055.png: 2 ground truth boxes, 10 predictions
+2026-11-18 10:34:53,145 INFO: m19_parkinglot_stairway_frame_000056.png: 7 ground truth boxes, 25 predictions
+2026-11-18 10:34:53,368 INFO: m19_parkinglot_stairway_frame_000057.png: 12 ground truth boxes, 35 predictions
+2026-11-18 10:34:53,611 INFO: old_field_mannequins_frame_000273.png: 5 ground truth boxes, 12 predictions
+2026-11-18 10:34:53,835 INFO: old_field_mannequins_frame_000281.png: 4 ground truth boxes, 7 predictions
+2026-11-18 10:34:54,069 INFO: old_field_mannequins_frame_000282.png: 5 ground truth boxes, 8 predictions
+2026-11-18 10:34:54,321 INFO: old_field_mannequins_frame_000285.png: 5 ground truth boxes, 10 predictions
+2026-11-18 10:34:54,615 INFO: old_field_mannequins_frame_000288.png: 5 ground truth boxes, 8 predictions
+2026-11-18 10:34:54,832 INFO: old_field_mannequins_frame_000295.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:34:55,042 INFO: old_field_mannequins_frame_000297.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:55,282 INFO: old_field_mannequins_frame_000315.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:34:55,575 INFO: old_field_mannequins_frame_000317.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:34:55,815 INFO: old_field_mannequins_frame_000324.png: 6 ground truth boxes, 14 predictions
+2026-11-18 10:34:56,054 INFO: old_field_mannequins_frame_000328.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:56,299 INFO: old_field_mannequins_frame_000331.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:56,530 INFO: old_field_mannequins_frame_000332.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:34:56,806 INFO: old_field_mannequins_frame_000333.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:34:57,052 INFO: old_field_mannequins_frame_000334.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:34:57,297 INFO: old_field_mannequins_frame_000335.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:57,588 INFO: old_field_mannequins_frame_000347.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:57,835 INFO: old_field_mannequins_frame_000362.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:34:58,081 INFO: old_field_mannequins_frame_000365.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:34:58,359 INFO: old_field_mannequins_frame_000366.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:58,601 INFO: old_field_mannequins_frame_000370.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:34:58,848 INFO: old_field_mannequins_frame_000373.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:34:59,126 INFO: old_field_mannequins_frame_000374.png: 6 ground truth boxes, 8 predictions
+2026-11-18 10:34:59,372 INFO: old_field_mannequins_frame_000375.png: 4 ground truth boxes, 7 predictions
+2026-11-18 10:34:59,609 INFO: old_field_mannequins_frame_000379.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:34:59,835 INFO: old_field_mannequins_frame_000382.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:35:00,037 INFO: old_field_mannequins_frame_000385.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:35:00,293 INFO: old_field_mannequins_frame_000386.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:35:00,538 INFO: old_field_mannequins_frame_000387.png: 6 ground truth boxes, 18 predictions
+2026-11-18 10:35:00,779 INFO: old_field_mannequins_frame_000388.png: 6 ground truth boxes, 12 predictions
+2026-11-18 10:35:01,020 INFO: old_field_mannequins_frame_000389.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:35:01,257 INFO: old_field_mannequins_frame_000390.png: 6 ground truth boxes, 12 predictions
+2026-11-18 10:35:01,500 INFO: old_field_mannequins_frame_000391.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:35:01,747 INFO: old_field_mannequins_frame_000392.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:02,038 INFO: old_field_mannequins_frame_000393.png: 5 ground truth boxes, 9 predictions
+2026-11-18 10:35:02,281 INFO: old_field_mannequins_frame_000394.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:02,522 INFO: old_field_mannequins_frame_000398.png: 5 ground truth boxes, 9 predictions
+2026-11-18 10:35:02,764 INFO: old_field_mannequins_frame_000401.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:35:02,984 INFO: old_field_mannequins_frame_000408.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:35:03,208 INFO: old_field_mannequins_frame_000411.png: 6 ground truth boxes, 10 predictions
+2026-11-18 10:35:03,461 INFO: old_field_mannequins_frame_000414.png: 6 ground truth boxes, 12 predictions
+2026-11-18 10:35:03,712 INFO: old_field_mannequins_frame_000415.png: 5 ground truth boxes, 14 predictions
+2026-11-18 10:35:03,989 INFO: old_field_mannequins_frame_000416.png: 4 ground truth boxes, 11 predictions
+2026-11-18 10:35:04,205 INFO: old_field_mannequins_frame_000417.png: 4 ground truth boxes, 14 predictions
+2026-11-18 10:35:04,437 INFO: old_field_mannequins_frame_000418.png: 3 ground truth boxes, 10 predictions
+2026-11-18 10:35:04,680 INFO: old_field_mannequins_frame_000419.png: 2 ground truth boxes, 7 predictions
+2026-11-18 10:35:04,887 INFO: old_field_mannequins_frame_000420.png: 1 ground truth boxes, 4 predictions
+2026-11-18 10:35:05,149 INFO: old_field_mannequins_frame_000421.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:05,346 INFO: old_field_mannequins_frame_000422.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:05,574 INFO: old_field_mannequins_frame_000423.png: 2 ground truth boxes, 5 predictions
+2026-11-18 10:35:05,819 INFO: old_field_mannequins_frame_000424.png: 3 ground truth boxes, 4 predictions
+2026-11-18 10:35:06,040 INFO: old_field_mannequins_frame_000425.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:35:06,286 INFO: old_field_mannequins_frame_000426.png: 6 ground truth boxes, 14 predictions
+2026-11-18 10:35:06,535 INFO: old_field_mannequins_frame_000428.png: 6 ground truth boxes, 11 predictions
+2026-11-18 10:35:06,760 INFO: old_field_mannequins_frame_000429.png: 6 ground truth boxes, 12 predictions
+2026-11-18 10:35:06,984 INFO: old_field_mannequins_frame_000431.png: 6 ground truth boxes, 9 predictions
+2026-11-18 10:35:07,223 INFO: old_field_mannequins_frame_000432.png: 5 ground truth boxes, 7 predictions
+2026-11-18 10:35:07,448 INFO: old_field_mannequins_frame_000434.png: 5 ground truth boxes, 10 predictions
+2026-11-18 10:35:07,700 INFO: old_field_mannequins_frame_000435.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:07,994 INFO: old_field_mannequins_frame_000436.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:08,246 INFO: old_field_mannequins_frame_000437.png: 5 ground truth boxes, 13 predictions
+2026-11-18 10:35:08,489 INFO: old_field_mannequins_frame_000438.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:08,708 INFO: old_field_mannequins_frame_000450.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:35:08,926 INFO: old_field_mannequins_frame_000451.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:35:09,160 INFO: old_field_mannequins_frame_000452.png: 5 ground truth boxes, 10 predictions
+2026-11-18 10:35:09,381 INFO: old_field_mannequins_frame_000453.png: 4 ground truth boxes, 12 predictions
+2026-11-18 10:35:09,596 INFO: old_field_mannequins_frame_000454.png: 1 ground truth boxes, 4 predictions
+2026-11-18 10:35:09,804 INFO: old_field_mannequins_frame_000455.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:10,003 INFO: old_field_mannequins_frame_000456.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:10,252 INFO: old_field_mannequins_frame_000464.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:10,503 INFO: old_field_mannequins_frame_000465.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:10,726 INFO: old_field_mannequins_frame_000466.png: 1 ground truth boxes, 2 predictions
+2026-11-18 10:35:10,951 INFO: old_field_mannequins_frame_000468.png: 6 ground truth boxes, 16 predictions
+2026-11-18 10:35:11,177 INFO: old_field_mannequins_frame_000470.png: 5 ground truth boxes, 11 predictions
+2026-11-18 10:35:11,397 INFO: old_field_mannequins_frame_000472.png: 5 ground truth boxes, 8 predictions
+2026-11-18 10:35:11,656 INFO: old_field_mannequins_frame_000474.png: 3 ground truth boxes, 5 predictions
+2026-11-18 10:35:11,913 INFO: old_field_mannequins_frame_000476.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:12,167 INFO: old_field_mannequins_frame_000477.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:12,409 INFO: roundhouse_hillside_tracks_frame_000001.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:12,663 INFO: roundhouse_hillside_tracks_frame_000002.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:12,919 INFO: roundhouse_hillside_tracks_frame_000004.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:13,177 INFO: roundhouse_hillside_tracks_frame_000005.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:13,430 INFO: roundhouse_hillside_tracks_frame_000006.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:13,678 INFO: roundhouse_hillside_tracks_frame_000007.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:13,910 INFO: roundhouse_hillside_tracks_frame_000008.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:14,165 INFO: roundhouse_hillside_tracks_frame_000009.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:14,418 INFO: roundhouse_hillside_tracks_frame_000010.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:14,704 INFO: roundhouse_hillside_tracks_frame_000011.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:14,899 INFO: roundhouse_hillside_tracks_frame_000012.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:15,110 INFO: roundhouse_hillside_tracks_frame_000013.png: 0 ground truth boxes, 3 predictions
+2026-11-18 10:35:15,355 INFO: roundhouse_hillside_tracks_frame_000014.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:15,559 INFO: roundhouse_hillside_tracks_frame_000016.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:15,766 INFO: roundhouse_hillside_tracks_frame_000019.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:15,967 INFO: roundhouse_hillside_tracks_frame_000020.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:16,169 INFO: roundhouse_hillside_tracks_frame_000021.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:16,393 INFO: roundhouse_hillside_tracks_frame_000022.png: 0 ground truth boxes, 3 predictions
+2026-11-18 10:35:16,598 INFO: roundhouse_hillside_tracks_frame_000023.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:16,809 INFO: roundhouse_hillside_tracks_frame_000024.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:17,013 INFO: roundhouse_hillside_tracks_frame_000027.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:17,222 INFO: roundhouse_hillside_tracks_frame_000028.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:17,431 INFO: roundhouse_hillside_tracks_frame_000030.png: 1 ground truth boxes, 5 predictions
+2026-11-18 10:35:17,640 INFO: roundhouse_hillside_tracks_frame_000031.png: 2 ground truth boxes, 5 predictions
+2026-11-18 10:35:17,845 INFO: roundhouse_hillside_tracks_frame_000032.png: 2 ground truth boxes, 3 predictions
+2026-11-18 10:35:18,054 INFO: roundhouse_hillside_tracks_frame_000033.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:18,263 INFO: roundhouse_hillside_tracks_frame_000055.png: 1 ground truth boxes, 5 predictions
+2026-11-18 10:35:18,484 INFO: roundhouse_hillside_tracks_frame_000056.png: 1 ground truth boxes, 11 predictions
+2026-11-18 10:35:18,695 INFO: roundhouse_hillside_tracks_frame_000093.png: 2 ground truth boxes, 16 predictions
+2026-11-18 10:35:18,903 INFO: roundhouse_hillside_tracks_frame_000095.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:19,111 INFO: roundhouse_hillside_tracks_frame_000100.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:19,324 INFO: roundhouse_hillside_tracks_frame_000101.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:19,526 INFO: roundhouse_hillside_tracks_frame_000102.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:19,733 INFO: roundhouse_hillside_tracks_frame_000104.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:19,923 INFO: roundhouse_hillside_tracks_frame_000105.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:20,097 INFO: roundhouse_hillside_tracks_frame_000106.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:20,296 INFO: roundhouse_hillside_tracks_frame_000107.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:20,502 INFO: roundhouse_hillside_tracks_frame_000108.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:20,725 INFO: roundhouse_hillside_tracks_frame_000109.png: 1 ground truth boxes, 1 predictions
+2026-11-18 10:35:20,947 INFO: roundhouse_hillside_tracks_frame_000110.png: 1 ground truth boxes, 1 predictions
+2026-11-18 10:35:21,221 INFO: roundhouse_hillside_tracks_frame_000111.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:21,432 INFO: roundhouse_hillside_tracks_frame_000112.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:21,654 INFO: roundhouse_hillside_tracks_frame_000113.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:21,879 INFO: roundhouse_hillside_tracks_frame_000114.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:22,121 INFO: roundhouse_hillside_tracks_frame_000115.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:22,328 INFO: roundhouse_hillside_tracks_frame_000116.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:22,534 INFO: roundhouse_hillside_tracks_frame_000117.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:22,777 INFO: trail_near_bioforge_frame_000001.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:23,030 INFO: trail_near_bioforge_frame_000002.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:23,280 INFO: trail_near_bioforge_frame_000003.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:23,576 INFO: trail_near_bioforge_frame_000004.png: 0 ground truth boxes, 3 predictions
+2026-11-18 10:35:23,827 INFO: trail_near_bioforge_frame_000005.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:24,117 INFO: trail_near_bioforge_frame_000007.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:24,375 INFO: trail_near_bioforge_frame_000008.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:24,617 INFO: trail_near_bioforge_frame_000010.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:24,841 INFO: trail_near_bioforge_frame_000011.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:25,070 INFO: trail_near_bioforge_frame_000012.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:25,321 INFO: trail_near_bioforge_frame_000013.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:25,573 INFO: trail_near_bioforge_frame_000015.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:25,836 INFO: trail_near_bioforge_frame_000016.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:26,086 INFO: trail_near_bioforge_frame_000017.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:26,343 INFO: trail_near_bioforge_frame_000019.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:26,599 INFO: trail_near_bioforge_frame_000021.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:26,845 INFO: trail_near_bioforge_frame_000022.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:27,094 INFO: trail_near_bioforge_frame_000023.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:27,352 INFO: trail_near_bioforge_frame_000024.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:27,598 INFO: trail_near_bioforge_frame_000025.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:27,839 INFO: trail_near_bioforge_frame_000026.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:28,085 INFO: trail_near_bioforge_frame_000027.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:28,345 INFO: trail_near_bioforge_frame_000028.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:28,586 INFO: trail_near_bioforge_frame_000033.png: 0 ground truth boxes, 6 predictions
+2026-11-18 10:35:28,830 INFO: trail_near_bioforge_frame_000034.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:29,081 INFO: trail_near_bioforge_frame_000035.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:29,333 INFO: trail_near_bioforge_frame_000036.png: 2 ground truth boxes, 3 predictions
+2026-11-18 10:35:29,557 INFO: trail_near_bioforge_frame_000037.png: 8 ground truth boxes, 14 predictions
+2026-11-18 10:35:29,828 INFO: trail_near_bioforge_frame_000038.png: 11 ground truth boxes, 16 predictions
+2026-11-18 10:35:30,061 INFO: trail_near_bioforge_frame_000046.png: 10 ground truth boxes, 18 predictions
+2026-11-18 10:35:30,290 INFO: trail_near_bioforge_frame_000049.png: 8 ground truth boxes, 15 predictions
+2026-11-18 10:35:30,520 INFO: trail_near_bioforge_frame_000050.png: 5 ground truth boxes, 5 predictions
+2026-11-18 10:35:30,772 INFO: trail_near_bioforge_frame_000051.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:31,031 INFO: trail_near_bioforge_frame_000052.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:31,285 INFO: trail_near_bioforge_frame_000053.png: 0 ground truth boxes, 4 predictions
+2026-11-18 10:35:31,497 INFO: trail_near_bioforge_frame_000058.png: 0 ground truth boxes, 4 predictions
+2026-11-18 10:35:31,715 INFO: trail_near_bioforge_frame_000060.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:31,988 INFO: trail_near_bioforge_frame_000062.png: 0 ground truth boxes, 5 predictions
+2026-11-18 10:35:32,201 INFO: trail_near_bioforge_frame_000064.png: 0 ground truth boxes, 10 predictions
+2026-11-18 10:35:32,407 INFO: trail_near_bioforge_frame_000067.png: 0 ground truth boxes, 7 predictions
+2026-11-18 10:35:32,614 INFO: trail_near_bioforge_frame_000068.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:32,844 INFO: trail_near_bioforge_frame_000069.png: 3 ground truth boxes, 7 predictions
+2026-11-18 10:35:33,142 INFO: trail_near_bioforge_frame_000070.png: 7 ground truth boxes, 15 predictions
+2026-11-18 10:35:33,413 INFO: trail_near_bioforge_frame_000071.png: 15 ground truth boxes, 32 predictions
+2026-11-18 10:35:33,646 INFO: trail_near_bioforge_frame_000072.png: 12 ground truth boxes, 34 predictions
+2026-11-18 10:35:33,879 INFO: trail_near_bioforge_frame_000077.png: 10 ground truth boxes, 23 predictions
+2026-11-18 10:35:34,088 INFO: trail_near_bioforge_frame_000079.png: 10 ground truth boxes, 24 predictions
+2026-11-18 10:35:34,289 INFO: trail_near_bioforge_frame_000081.png: 9 ground truth boxes, 18 predictions
+2026-11-18 10:35:34,503 INFO: trail_near_bioforge_frame_000085.png: 6 ground truth boxes, 13 predictions
+2026-11-18 10:35:34,712 INFO: trail_near_bioforge_frame_000086.png: 6 ground truth boxes, 12 predictions
+2026-11-18 10:35:34,910 INFO: trail_near_bioforge_frame_000087.png: 6 ground truth boxes, 14 predictions
+2026-11-18 10:35:35,104 INFO: trail_near_bioforge_frame_000092.png: 4 ground truth boxes, 8 predictions
+2026-11-18 10:35:35,311 INFO: trail_near_bioforge_frame_000093.png: 4 ground truth boxes, 10 predictions
+2026-11-18 10:35:35,516 INFO: trail_near_bioforge_frame_000097.png: 4 ground truth boxes, 8 predictions
+2026-11-18 10:35:35,721 INFO: trail_near_bioforge_frame_000100.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:35,928 INFO: trail_near_bioforge_frame_000102.png: 1 ground truth boxes, 1 predictions
+2026-11-18 10:35:36,137 INFO: trail_near_bioforge_frame_000103.png: 1 ground truth boxes, 1 predictions
+2026-11-18 10:35:36,351 INFO: trail_near_bioforge_frame_000104.png: 1 ground truth boxes, 1 predictions
+2026-11-18 10:35:36,598 INFO: trail_near_bioforge_frame_000107.png: 1 ground truth boxes, 3 predictions
+2026-11-18 10:35:36,830 INFO: trail_near_bioforge_frame_000108.png: 1 ground truth boxes, 4 predictions
+2026-11-18 10:35:37,059 INFO: trail_near_bioforge_frame_000110.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:37,318 INFO: trail_near_bioforge_frame_000111.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:37,572 INFO: trail_near_bioforge_frame_000114.png: 0 ground truth boxes, 0 predictions
+2026-11-18 10:35:37,783 INFO: trail_near_bioforge_frame_000115.png: 0 ground truth boxes, 1 predictions
+2026-11-18 10:35:37,980 INFO: trail_near_bioforge_frame_000116.png: 0 ground truth boxes, 2 predictions
+2026-11-18 10:35:38,178 INFO: ======================================================================
+2026-11-18 10:35:38,178 INFO: Per-class AP (only classes present in ground truth):
+2026-11-18 10:35:38,178 INFO:   person          AP50=0.588  mAP50-95=0.224  recall@0.50=0.687 (246/358)  precision@0.50=0.326 (246/755)
+2026-11-18 10:35:38,178 INFO:   bicycle         AP50=0.180  mAP50-95=0.051  recall@0.50=0.239 (16/67)  precision@0.50=0.444 (16/36)
+2026-11-18 10:35:38,178 INFO:   car             AP50=0.667  mAP50-95=0.336  recall@0.50=0.723 (261/361)  precision@0.50=0.274 (261/952)
+2026-11-18 10:35:38,178 INFO:   bus             AP50=1.000  mAP50-95=0.711  recall@0.50=1.000 (3/3)  precision@0.50=0.500 (3/6)
+2026-11-18 10:35:38,178 INFO:   truck           AP50=0.421  mAP50-95=0.222  recall@0.50=0.614 (35/57)  precision@0.50=0.142 (35/247)
+2026-11-18 10:35:38,178 INFO: ======================================================================
+2026-11-18 10:35:38,178 INFO: Overall mAP50:    0.5713
+2026-11-18 10:35:38,179 INFO: Overall mAP50-95: 0.3089
+2026-11-18 10:35:38,179 INFO: Overall recall@0.50: 0.6631 (561/846)
+2026-11-18 10:35:38,179 INFO: Overall precision@0.50: 0.2811 (561/1996); 766 boxes of classes not in the labels
+2026-11-18 10:35:38,179 INFO: ======================================================================

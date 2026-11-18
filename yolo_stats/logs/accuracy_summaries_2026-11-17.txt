@@ -1,0 +1,120 @@
+##### libs640_v26_quant.so conf=0.001
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.351  mAP50-95=0.133  recall@0.50=0.480 (172/358)  precision@0.50=0.219 (172/785)
+bicycle         AP50=0.025  mAP50-95=0.014  recall@0.50=0.030 (2/67)  precision@0.50=0.250 (2/8)
+car             AP50=0.624  mAP50-95=0.279  recall@0.50=0.706 (255/361)  precision@0.50=0.234 (255/1091)
+bus             AP50=0.750  mAP50-95=0.375  recall@0.50=1.000 (3/3)  precision@0.50=0.125 (3/24)
+truck           AP50=0.400  mAP50-95=0.151  recall@0.50=0.614 (35/57)  precision@0.50=0.116 (35/302)
+Overall mAP50:    0.4299
+Overall mAP50-95: 0.1902
+Overall recall@0.50: 0.5520 (467/846)
+Overall precision@0.50: 0.2113 (467/2210); 1018 boxes of classes not in the labels
+##### libn640x384_v26_quant.so conf=0.001
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.223  mAP50-95=0.087  recall@0.50=0.302 (108/358)  precision@0.50=0.212 (108/510)
+bicycle         AP50=0.020  mAP50-95=0.004  recall@0.50=0.015 (1/67)  precision@0.50=0.333 (1/3)
+car             AP50=0.618  mAP50-95=0.336  recall@0.50=0.704 (254/361)  precision@0.50=0.171 (254/1488)
+bus             AP50=1.000  mAP50-95=0.683  recall@0.50=1.000 (3/3)  precision@0.50=0.136 (3/22)
+truck           AP50=0.002  mAP50-95=0.001  recall@0.50=0.035 (2/57)  precision@0.50=0.012 (2/168)
+Overall mAP50:    0.3725
+Overall mAP50-95: 0.2222
+Overall recall@0.50: 0.4350 (368/846)
+Overall precision@0.50: 0.1680 (368/2191); 955 boxes of classes not in the labels
+##### libs640x384_v26_quant.so conf=0.001
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.328  mAP50-95=0.112  recall@0.50=0.453 (162/358)  precision@0.50=0.225 (162/721)
+bicycle         AP50=0.059  mAP50-95=0.018  recall@0.50=0.060 (4/67)  precision@0.50=0.571 (4/7)
+car             AP50=0.620  mAP50-95=0.294  recall@0.50=0.695 (251/361)  precision@0.50=0.272 (251/922)
+bus             AP50=0.750  mAP50-95=0.461  recall@0.50=1.000 (3/3)  precision@0.50=0.167 (3/18)
+truck           AP50=0.371  mAP50-95=0.178  recall@0.50=0.579 (33/57)  precision@0.50=0.111 (33/296)
+Overall mAP50:    0.4256
+Overall mAP50-95: 0.2125
+Overall recall@0.50: 0.5355 (453/846)
+Overall precision@0.50: 0.2307 (453/1964); 1175 boxes of classes not in the labels
+##### libm640x384_v26_quant.so conf=0.001
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.467  mAP50-95=0.179  recall@0.50=0.575 (206/358)  precision@0.50=0.300 (206/687)
+bicycle         AP50=0.158  mAP50-95=0.051  recall@0.50=0.239 (16/67)  precision@0.50=0.500 (16/32)
+car             AP50=0.656  mAP50-95=0.326  recall@0.50=0.723 (261/361)  precision@0.50=0.227 (261/1148)
+bus             AP50=1.000  mAP50-95=0.395  recall@0.50=1.000 (3/3)  precision@0.50=0.300 (3/10)
+truck           AP50=0.432  mAP50-95=0.216  recall@0.50=0.632 (36/57)  precision@0.50=0.167 (36/216)
+Overall mAP50:    0.5427
+Overall mAP50-95: 0.2334
+Overall recall@0.50: 0.6170 (522/846)
+Overall precision@0.50: 0.2494 (522/2093); 675 boxes of classes not in the labels
+##### libl640x384_v26_quant.so conf=0.001
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.418  mAP50-95=0.144  recall@0.50=0.522 (187/358)  precision@0.50=0.305 (187/614)
+bicycle         AP50=0.050  mAP50-95=0.016  recall@0.50=0.045 (3/67)  precision@0.50=0.500 (3/6)
+car             AP50=0.673  mAP50-95=0.328  recall@0.50=0.731 (264/361)  precision@0.50=0.223 (264/1185)
+bus             AP50=1.000  mAP50-95=0.633  recall@0.50=1.000 (3/3)  precision@0.50=0.120 (3/25)
+truck           AP50=0.393  mAP50-95=0.191  recall@0.50=0.667 (38/57)  precision@0.50=0.138 (38/276)
+Overall mAP50:    0.5068
+Overall mAP50-95: 0.2622
+Overall recall@0.50: 0.5851 (495/846)
+Overall precision@0.50: 0.2350 (495/2106); 930 boxes of classes not in the labels
+##### libs640_v26_quant.so conf=0.5
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.234  mAP50-95=0.096  recall@0.50=0.285 (102/358)  precision@0.50=0.767 (102/133)
+bicycle         AP50=0.000  mAP50-95=0.000  recall@0.50=0.000 (0/67)  precision@0.50=nan (0/0)
+car             AP50=0.505  mAP50-95=0.243  recall@0.50=0.524 (189/361)  precision@0.50=0.875 (189/216)
+bus             AP50=0.750  mAP50-95=0.375  recall@0.50=1.000 (3/3)  precision@0.50=0.375 (3/8)
+truck           AP50=0.305  mAP50-95=0.115  recall@0.50=0.351 (20/57)  precision@0.50=0.606 (20/33)
+Overall mAP50:    0.3588
+Overall mAP50-95: 0.1658
+Overall recall@0.50: 0.3712 (314/846)
+Overall precision@0.50: 0.8051 (314/390); 70 boxes of classes not in the labels
+##### libn640x384_v26_quant.so conf=0.5
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.034  mAP50-95=0.021  recall@0.50=0.039 (14/358)  precision@0.50=0.737 (14/19)
+bicycle         AP50=0.000  mAP50-95=0.000  recall@0.50=0.000 (0/67)  precision@0.50=nan (0/0)
+car             AP50=0.403  mAP50-95=0.246  recall@0.50=0.404 (146/361)  precision@0.50=0.954 (146/153)
+bus             AP50=1.000  mAP50-95=0.683  recall@0.50=1.000 (3/3)  precision@0.50=1.000 (3/3)
+truck           AP50=0.000  mAP50-95=0.000  recall@0.50=0.000 (0/57)  precision@0.50=nan (0/0)
+Overall mAP50:    0.2872
+Overall mAP50-95: 0.1901
+Overall recall@0.50: 0.1927 (163/846)
+Overall precision@0.50: 0.9314 (163/175); 52 boxes of classes not in the labels
+##### libs640x384_v26_quant.so conf=0.5
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.215  mAP50-95=0.078  recall@0.50=0.254 (91/358)  precision@0.50=0.728 (91/125)
+bicycle         AP50=0.000  mAP50-95=0.000  recall@0.50=0.000 (0/67)  precision@0.50=nan (0/0)
+car             AP50=0.515  mAP50-95=0.258  recall@0.50=0.532 (192/361)  precision@0.50=0.889 (192/216)
+bus             AP50=0.750  mAP50-95=0.461  recall@0.50=1.000 (3/3)  precision@0.50=0.500 (3/6)
+truck           AP50=0.277  mAP50-95=0.136  recall@0.50=0.333 (19/57)  precision@0.50=0.576 (19/33)
+Overall mAP50:    0.3514
+Overall mAP50-95: 0.1868
+Overall recall@0.50: 0.3605 (305/846)
+Overall precision@0.50: 0.8026 (305/380); 79 boxes of classes not in the labels
+##### libm640x384_v26_quant.so conf=0.5
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.200  mAP50-95=0.082  recall@0.50=0.221 (79/358)  precision@0.50=0.832 (79/95)
+bicycle         AP50=0.050  mAP50-95=0.021  recall@0.50=0.045 (3/67)  precision@0.50=0.750 (3/4)
+car             AP50=0.533  mAP50-95=0.284  recall@0.50=0.546 (197/361)  precision@0.50=0.887 (197/222)
+bus             AP50=1.000  mAP50-95=0.395  recall@0.50=1.000 (3/3)  precision@0.50=1.000 (3/3)
+truck           AP50=0.324  mAP50-95=0.165  recall@0.50=0.404 (23/57)  precision@0.50=0.639 (23/36)
+Overall mAP50:    0.4214
+Overall mAP50-95: 0.1892
+Overall recall@0.50: 0.3605 (305/846)
+Overall precision@0.50: 0.8472 (305/360); 25 boxes of classes not in the labels
+##### libl640x384_v26_quant.so conf=0.5
+dets: 0
+Per-class AP (only classes present in ground truth):
+person          AP50=0.208  mAP50-95=0.075  recall@0.50=0.232 (83/358)  precision@0.50=0.814 (83/102)
+bicycle         AP50=0.000  mAP50-95=0.000  recall@0.50=0.000 (0/67)  precision@0.50=nan (0/0)
+car             AP50=0.578  mAP50-95=0.301  recall@0.50=0.593 (214/361)  precision@0.50=0.873 (214/245)
+bus             AP50=1.000  mAP50-95=0.633  recall@0.50=1.000 (3/3)  precision@0.50=0.750 (3/4)
+truck           AP50=0.333  mAP50-95=0.170  recall@0.50=0.509 (29/57)  precision@0.50=0.604 (29/48)
+Overall mAP50:    0.4239
+Overall mAP50-95: 0.2358
+Overall recall@0.50: 0.3889 (329/846)
+Overall precision@0.50: 0.8246 (329/399); 52 boxes of classes not in the labels

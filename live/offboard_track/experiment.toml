@@ -37,5 +37,11 @@ prefix = "" # Defaults to empty string for orchestrator (assumed to be local)
 prefix = "root@heisenberg:" # SSH/RSYNC prefix
 
 [results] # The sources will be destroyed (uses rsync --remove-source-files); directories are removed after the experiment
-dets = "lambda/root/.local/share/steeleagle/files/detection_log/*"
+# detection_log's frames on lambda, as is (raw/) and with RF-DETR's boxes
+# drawn (out/), in files/<engine>/ (e.g. 128.2.208.46.detection_log/)
+dets = "lambda/root/.local/share/steeleagle/files/*.detection_log"
+# The GCS's recording of the drone's H.264 stream (dump_dir in lambda.toml):
+# the only copy of the video the drone saw. Kept in the files directory, as a
+# package reinstall replaces the GCS's own directory
+gcs = "lambda/root/.local/share/steeleagle/files/gcs_frames/"
 [catalogs] # The sources will be copied

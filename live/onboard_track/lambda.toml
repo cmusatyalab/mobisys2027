@@ -21,7 +21,7 @@
     package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/gcs@v4_backend_rework"
     plugin = "gcs"
     [services.plugin.args]
-      dump_dir = "gcs_frames"
+      dump_dir = "/root/.local/share/steeleagle/files/gcs_frames"
       http_addr = ":8002"
 
 [[services]]

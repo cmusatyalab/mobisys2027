@@ -1,0 +1,52 @@
+##### latency libs640_v26_quant.so
+##### latency libn640x384_v26_quant.so
+##### latency libs640x384_v26_quant.so
+##### latency libm640x384_v26_quant.so
+##### latency libl640x384_v26_quant.so
+##### latency libx640x384_v26_quant.so
+##### latency libx640_v26_quant.so
+##### accuracy libx640x384_v26_quant.so conf=0.001
+Per-class AP (only classes present in ground truth):
+person          AP50=0.588  mAP50-95=0.224  recall@0.50=0.687 (246/358)  precision@0.50=0.326 (246/755)
+bicycle         AP50=0.180  mAP50-95=0.051  recall@0.50=0.239 (16/67)  precision@0.50=0.444 (16/36)
+car             AP50=0.667  mAP50-95=0.336  recall@0.50=0.723 (261/361)  precision@0.50=0.274 (261/952)
+bus             AP50=1.000  mAP50-95=0.711  recall@0.50=1.000 (3/3)  precision@0.50=0.500 (3/6)
+truck           AP50=0.421  mAP50-95=0.222  recall@0.50=0.614 (35/57)  precision@0.50=0.142 (35/247)
+Overall mAP50:    0.5713
+Overall mAP50-95: 0.3089
+Overall recall@0.50: 0.6631 (561/846)
+Overall precision@0.50: 0.2811 (561/1996); 766 boxes of classes not in the labels
+##### accuracy libx640_v26_quant.so conf=0.001
+Per-class AP (only classes present in ground truth):
+person          AP50=0.530  mAP50-95=0.186  recall@0.50=0.651 (233/358)  precision@0.50=0.292 (233/799)
+bicycle         AP50=0.205  mAP50-95=0.055  recall@0.50=0.284 (19/67)  precision@0.50=0.559 (19/34)
+car             AP50=0.644  mAP50-95=0.302  recall@0.50=0.706 (255/361)  precision@0.50=0.252 (255/1011)
+bus             AP50=1.000  mAP50-95=0.489  recall@0.50=1.000 (3/3)  precision@0.50=0.375 (3/8)
+truck           AP50=0.341  mAP50-95=0.157  recall@0.50=0.544 (31/57)  precision@0.50=0.108 (31/286)
+Overall mAP50:    0.5442
+Overall mAP50-95: 0.2378
+Overall recall@0.50: 0.6395 (541/846)
+Overall precision@0.50: 0.2530 (541/2138); 809 boxes of classes not in the labels
+##### accuracy libx640x384_v26_quant.so conf=0.5
+Per-class AP (only classes present in ground truth):
+person          AP50=0.418  mAP50-95=0.167  recall@0.50=0.464 (166/358)  precision@0.50=0.818 (166/203)
+bicycle         AP50=0.095  mAP50-95=0.026  recall@0.50=0.119 (8/67)  precision@0.50=0.667 (8/12)
+car             AP50=0.579  mAP50-95=0.308  recall@0.50=0.593 (214/361)  precision@0.50=0.846 (214/253)
+bus             AP50=1.000  mAP50-95=0.711  recall@0.50=1.000 (3/3)  precision@0.50=1.000 (3/3)
+truck           AP50=0.385  mAP50-95=0.206  recall@0.50=0.526 (30/57)  precision@0.50=0.682 (30/44)
+Overall mAP50:    0.4952
+Overall mAP50-95: 0.2837
+Overall recall@0.50: 0.4976 (421/846)
+Overall precision@0.50: 0.8175 (421/515); 61 boxes of classes not in the labels
+##### accuracy libx640_v26_quant.so conf=0.5
+Per-class AP (only classes present in ground truth):
+person          AP50=0.381  mAP50-95=0.138  recall@0.50=0.447 (160/358)  precision@0.50=0.762 (160/210)
+bicycle         AP50=0.072  mAP50-95=0.019  recall@0.50=0.104 (7/67)  precision@0.50=0.583 (7/12)
+car             AP50=0.560  mAP50-95=0.281  recall@0.50=0.587 (212/361)  precision@0.50=0.791 (212/268)
+bus             AP50=1.000  mAP50-95=0.489  recall@0.50=1.000 (3/3)  precision@0.50=1.000 (3/3)
+truck           AP50=0.311  mAP50-95=0.147  recall@0.50=0.474 (27/57)  precision@0.50=0.587 (27/46)
+Overall mAP50:    0.4647
+Overall mAP50-95: 0.2147
+Overall recall@0.50: 0.4835 (409/846)
+Overall precision@0.50: 0.7588 (409/539); 74 boxes of classes not in the labels
+##### fermi done
