@@ -43,10 +43,6 @@ rx = "lambda/root/.local/share/steeleagle/files/mb/rx.csv"
 # result, cleared before and moved off after each trial: they keep their
 # names from trial to trial, which a defer_pull catalog doesn't collect
 boxes = "heisenberg/root/.local/share/steeleagle/files/mb/"
-# The GCS's recording of the drone's H.264 stream (dump_dir in lambda.toml):
-# the only copy of the video the drone saw. Kept in the files directory, as a
-# package reinstall replaces the GCS's own directory
-gcs = "lambda/root/.local/share/steeleagle/files/gcs_frames/"
 [catalogs] # The sources will be copied; defer_pull ones are moved on their host into ~/.local/share/steeleagle/files/<experiment>_<profile>_<trial>_<catalog>/ instead, to be transferred later
 box_rerank_log = "heisenberg/root/.local/share/steeleagle/logs/*box_rerank.log"
 verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"

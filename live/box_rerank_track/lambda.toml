@@ -1,5 +1,5 @@
-# lambda (orchestrator): the GCS, and the verifier box_rerank's crops go to;
-# the crops are also re-encoded (h264_encoder) for the GCS
+# lambda (orchestrator): the GCS (telemetry only), and the verifier
+# box_rerank's crops go to
 
 [daemon]
   cert = ""
@@ -41,30 +41,6 @@
     package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
     plugin = "webp_decoder"
 
-# Re-encodes the decoded crops as H.264, the only video the GCS streams, so
-# box_rerank's crops can be watched there. In software (x264, the default);
-# each crop is scaled to 448x448, so the stream keeps one size whatever the
-# crop's. Scaled before converting: the plugin appends I420 caps for x264,
-# and GStreamer here can't parse two caps filters in a row. Keyframes are
-# forced after 150 ms without a frame (the default), so each crop, arriving
-# about once a second, decodes on its own.
-[[services]]
-  name = "h264_encoder"
-  type = "engine"
-  [services.plugin]
-    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
-    plugin = "encoder"
-    [services.plugin.args]
-      converter = "videoscale ! video/x-raw,width=448,height=448 ! videoconvert n-threads=4"
-
-# Qwen3-VL 30B-A3B on Ollama, prompted with a photo of the robot dog
-# (robodog.webp) in description mode: the model names what the photo shows
-# once ("a quadruped robot dog") and asks of each crop "Is the object inside
-# the red box <that>?", the crop enlarged to 224 px first; logs each crop and
-# its answer. Asked with the photo itself instead (image_mode "image"), it
-# said yes to 25 of 80 non-dog live crops (chairs, bags), against 4. The
-# heartbeat carries the model's longer description of the photo, which
-# box_rerank switches its CLIP prompt to
 [[services]]
   name = "verifier"
   type = "engine"

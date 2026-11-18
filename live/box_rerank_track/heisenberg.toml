@@ -52,6 +52,10 @@
       confidence = 0.5
       detector = "detection_qnn"
       gate = false
+      # Keep this prompt for the whole trial: without it, the verifier's
+      # prompt heartbeat (its description of robodog.webp, which takes the 30B
+      # model about a minute) replaces it mid-trial and clears all learning
+      ignore_new = true
       log_candidates = "mb/candidates.csv"
       prompt = "a quadruped robot dog"
       rank = "prompt"
