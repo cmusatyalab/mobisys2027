@@ -51,7 +51,9 @@
       log_tiles = true
       min_side = 224
       image = "robodog.webp"
-      image_mode = "description"
+      # Its kind ("a quadruped robot dog"), not a detailed description, which
+      # said yes to far more look-alikes (43 of 80 other crops, against 4)
+      image_descriptive = false
       question = "box"
 
 [simulator]

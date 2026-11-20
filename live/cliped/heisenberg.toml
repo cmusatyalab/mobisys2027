@@ -1,0 +1,53 @@
+# heisenberg (Tachyon, on the drone): the Anafi, cliped (CLIP edge filter on
+# the HTP), which picks the tiles worth sending and learns from lambda's
+# verifier, and WebP for the tiles on the link
+
+[daemon]
+  cert = ""
+  hostname = "heisenberg"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  orchestrator = "lambda:9000"
+  port = 9000
+
+# Its rgb stream is the 720p live stream, the size cliped's tiling is tuned
+# for, so no rescale
+[[services]]
+  name = "steppeeagle"
+  type = "vehicle"
+  [services.plugin]
+    environment = "native"
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/parrot_anafi@v4_backend_rework"
+    plugin = "anafi4k"
+    [services.plugin.args]
+      decoder = "qtic2vdec"
+
+# CLIP edge filter, learning on, as lab 2.1.3.9 (sandr): a tile is queued until
+# the verifier answers it. defer_similar sends near-copies of a tile sent
+# before only after every new tile. Logs each frame scored and each tile
+# queued
+[[services]]
+  name = "cliped"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "cliped"
+    [services.plugin.args]
+      prompt = "signs of human activity"
+      verifier = "verifier"
+      learn = true
+      defer_similar = true
+      max_queue = 512
+      log_sent = "mb/sent.csv"
+      log_scored = "mb/scored.csv"
+
+# WebP at quality 65, as in the lab
+[[services]]
+  name = "webp_encoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_encoder"
+    [services.plugin.args]
+      quality = 65

@@ -1,10 +1,14 @@
 # Set on the drone when the trial starts (ENTER), as the lab experiments'
-# flows are. box_rerank picks the person among YOLO's (stock COCO) boxes, on
-# the vehicle, for the Track mission the GCS infers and deploys; the GCS on
-# lambda2 watches the H.264 video:
+# flows are, and the GCS's default flow (uploaded as planning_flow.toml),
+# which live inference plans with and deploys its missions with. box_rerank picks
+# the person among YOLO's (stock COCO) boxes, on the vehicle, for the Track
+# mission the inference infers and deploys:
 # rgb -> yolo, box_rerank, box_log (on the vehicle); rgb -> encoder
-# ==network==> gcs (the pilot's view and its live mission inference) and
-# decoder -> detection (RF-DETR, the boxes inference sees).
+# ==network==> decoder, which feeds detection (RF-DETR, the boxes inference
+# sees) and reencoder (x264 on lambda2), which encodes the decoded frames again
+# for gcs (the pilot's view and its live mission inference). The decoder is
+# the only engine reading the drone's encoder, so its H.264 crosses the link
+# once.
 # box_rerank.reintegration -> webp_encoder ==network==> rx_metrics ->
 # webp_decoder -> verifier (Qwen3-VL), whose prompt the inference rewrites to
 # its description of the tracked person and whose yes/no box_rerank learns
@@ -44,6 +48,10 @@ location = "local"
 
 [[engines]]
 name = "remote.decoder"
+location = "remote"
+
+[[engines]]
+name = "remote.reencoder"
 location = "remote"
 
 [[engines]]
@@ -93,12 +101,17 @@ timeout = "1s"
 
 [[edges]]
 from = "local.encoder"
-to = "remote.gcs"
+to = "remote.decoder"
 timeout = "1s"
 
 [[edges]]
-from = "local.encoder"
-to = "remote.decoder"
+from = "remote.decoder"
+to = "remote.reencoder"
+timeout = "1s"
+
+[[edges]]
+from = "remote.reencoder"
+to = "remote.gcs"
 timeout = "1s"
 
 [[edges]]

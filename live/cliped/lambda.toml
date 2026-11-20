@@ -1,0 +1,55 @@
+# lambda (orchestrator): the GCS (telemetry, and the verifier's yes tiles as
+# H.264), and the verifier cliped's tiles go to
+
+[daemon]
+  cert = ""
+  hostname = "lambda"
+  lcs = 9001
+  logs = 9002
+  metrics_port = 9393
+  port = 9000
+
+[[services]]
+  auth = "admin"
+  name = "gcs"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/gcs@v4_backend_rework"
+    plugin = "gcs"
+    [services.plugin.args]
+      dump_dir = "/root/.local/share/steeleagle/files/gcs_frames"
+      http_addr = ":8002"
+
+[[services]]
+  name = "webp_decode"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
+    plugin = "webp_decoder"
+
+# Qwen3-VL 30B (Ollama) answers each tile with the same prompt as cliped;
+# forwards only the tiles it says yes to. Saves every tile (in/) and its yes
+# tiles (out/) under files/<ip>.verifier/
+[[services]]
+  name = "verifier"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/cliped@v4_backend_rework"
+    plugin = "verifier"
+    [services.plugin.args]
+      prompt = "signs of human activity"
+      log_tiles = true
+
+# The verifier's yes tiles as H.264 for the GCS, which streams nothing else.
+# x264 in software; the tiles come seconds apart, so keyframe_timeout makes
+# each a keyframe the browser can show on its own. No decoder: decoder_name's
+# keyframe requests never come
+[[services]]
+  name = "encoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "encoder"
+
+[simulator]
+  package = "https://github.com/cmusatyalab/steeleagle_plugins//simulator@v4_backend_rework"

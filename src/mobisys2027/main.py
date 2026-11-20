@@ -107,10 +107,12 @@ from steeleagle_protocol.v1.services.vehicle import (
 EXPERIMENT_FILE = "experiment.toml"
 # A mission folder (mission.file naming a directory) holds a flow and one
 # mission source, JSON or DSL, and is compiled on the vehicle (CompileMission)
-# instead of uploaded as a binary
+# instead of uploaded as a binary; with its map features, a .geojson file, if
+# the mission names any (e.g. a patrol's params.Polygon_<name>)
 MISSION_FLOW = "flow.toml"
 MISSION_JSON = "mission.json"
 MISSION_DSL = "mission.dsl"
+MISSION_GEOJSON_SUFFIX = ".geojson"
 
 
 def mission_source(folder: Path) -> Path:
@@ -123,6 +125,17 @@ def mission_source(folder: Path) -> Path:
             + (", not both" if found else "")
         )
     return found[0]
+
+
+def mission_geojson(folder: Path) -> Path | None:
+    """A mission folder's map features: its one .geojson file, or None."""
+    found = sorted(folder.glob(f"*{MISSION_GEOJSON_SUFFIX}"))
+    if len(found) > 1:
+        raise ValueError(f"mission folder {folder} has more than one {MISSION_GEOJSON_SUFFIX} file: "
+                         + ", ".join(f.name for f in found))
+    return found[0] if found else None
+
+
 VIDEOS_DIR = "videos"  # looked for at and above the experiment directory, before it
 # Images and other media the experiments upload (e.g. a prompt image), looked for like videos/
 MEDIA_DIR = "media"
@@ -690,6 +703,7 @@ def parse_experiment(
                     raise ValueError(f"{where}: mission folder {mission} has no {MISSION_FLOW}")
                 try:
                     mission_source(mission)
+                    mission_geojson(mission)
                 except ValueError as e:
                     raise ValueError(f"{where}: {e}") from None
             else:
@@ -1072,14 +1086,17 @@ class Daemon:
         )
 
     def compile_mission(self, folder: Path, route: str) -> None:
-        """Compiles a mission folder's flow and mission source (JSON or DSL)
-        on the vehicle, saved there under the folder's name. Compiling can be
-        slow, so it gets the install deadline."""
+        """Compiles a mission folder's flow and mission source (JSON or DSL),
+        with its map features (.geojson) if it has them, on the vehicle,
+        saved there under the folder's name. Compiling can be slow, so it gets
+        the install deadline."""
         source = mission_source(folder)
+        geojson = mission_geojson(folder)
         self.loader.CompileMission(
             upload_pb2.CompileMissionRequest(
                 name=folder.name,
                 flow=(folder / MISSION_FLOW).read_bytes(),
+                geojson=geojson.read_bytes() if geojson else b"",
                 mission=source.read_bytes(),
                 json=source.name == MISSION_JSON,
             ),

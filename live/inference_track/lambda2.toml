@@ -1,8 +1,9 @@
-# lambda2 (orchestrator): the real GCS, which the pilot flies the drone from
-# and runs live mission inference in (5 s sections, with RF-DETR's boxes); on
-# Track, it checks the person box_rerank follows against the verifier's prompt
-# and, if it isn't them, writes its description as the verifier's new prompt.
-# It deploys each section's mission to the drone, to start when the link drops.
+# lambda2 (orchestrator): the GCS, which the pilot flies the drone from and
+# runs live mission inference in (Inferred Mission tab, 5 s sections, with
+# RF-DETR's boxes); on Track, it checks the person box_rerank follows against
+# the verifier's prompt and, if it isn't them, writes its description as the
+# verifier's new prompt. It deploys each section's mission, with the trial's
+# flow, to the drone, to start when the link drops.
 # GPU 1 holds Qwen3-VL 30B (Ollama, kept loaded); RF-DETR 2XLarge goes on GPU 0.
 
 [daemon]
@@ -22,12 +23,22 @@
     plugin = "gcs"
     [services.plugin.args]
       dump_dir = "/root/.local/share/steeleagle/files/gcs_frames"
+      # The trial's flow.toml (uploaded as planning_flow.toml), loaded into
+      # the Flow Builder for steppeeagle, its local./remote. engines named by
+      # host there: the planning flow live inference plans with, and the flow
+      # its missions are deployed with
+      default_flow = "planning_flow.toml"
+      default_flow_vehicle = "steppeeagle"
       http_addr = ":8003"
+      # Inferred Mission keeps its runs in the files directory, a trial
+      # result
+      [services.plugin.args.ai]
+        data_dir = "/root/.local/share/steeleagle/files/inferred_mission"
       # Live inference's defaults (the Inferred Mission tab can override the
-      # detectors per run): the Track detector is named as in Flow Builder,
-      # by host. auto_deploy compiles and loads each section's mission on the
-      # vehicle and sets its data failsafe to start it, so the outage starts
-      # the inferred Track
+      # detectors per run): the Track detector is named as in the Flow
+      # Builder, by host. auto_deploy compiles and loads each section's
+      # mission on the vehicle and sets its data failsafe to start it, so the
+      # outage starts the inferred Track
       [services.plugin.args.ai.inferred_mission]
         section_seconds = 5.0
         detector = "detection"
@@ -42,6 +53,21 @@
   [services.plugin]
     package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
     plugin = "decoder"
+
+# The decoded drone frames encoded again (x264, in software) for the GCS, so
+# the drone's H.264 crosses the link only once (to the decoder). A keyframe
+# every second (15 frames at 15 fps), so the inference can decode each 5 s
+# section on its own. No decoder downstream: decoder_name's keyframe
+# requests never come
+[[services]]
+  name = "reencoder"
+  type = "engine"
+  [services.plugin]
+    package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/h264@v4_backend_rework"
+    plugin = "encoder"
+    [services.plugin.args]
+      encoder = "x264enc tune=zerolatency speed-preset=ultrafast pass=quant quantizer=23 key-int-max=15"
+      fps = 15
 
 # RF-DETR 2XLarge, stock COCO (torch for CUDA 12.6: the default CUDA 13 build
 # needs a newer driver than lambda2's and falls back to the CPU)
@@ -75,7 +101,8 @@
     plugin = "webp_decoder"
 
 # Qwen3-VL 30B (Ollama) answers box_rerank's crops; its prompt follows
-# verifier_live/prompt.txt, which the end hook moves into the trial directory
+# verifier_live/prompt.jpg (the GCS's crop of the tracked box), which the end
+# hook moves into the trial directory
 [[services]]
   name = "verifier"
   type = "engine"
@@ -88,3 +115,6 @@
       min_side = 224
       prompt = "moving"
       question = "box"
+      # The GCS writes a crop of the tracked box to verifier_live/prompt.jpg:
+      # described with its colors and features, not just its kind
+      image_descriptive = true

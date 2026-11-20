@@ -22,7 +22,8 @@
     [services.plugin.args]
       decoder = "qtic2vdec"
 
-# The default encoder: 360p, no rate control, no B-frames
+# The default encoder at 240p (426x240, as live/offboard_track), no rate
+# control, no B-frames
 [[services]]
   name = "encoder"
   type = "engine"
@@ -32,7 +33,7 @@
     plugin = "encoder"
     [services.plugin.args]
       convert_threads = 4
-      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=640,height=360"
+      converter = "qtivtransform ! video/x-raw(memory:GBM),format=NV12,width=426,height=240"
       decoder_name = "decoder"
       encoder = "qtic2venc control-rate=disable b-frames=0 idr-interval=30"
       fps = 15

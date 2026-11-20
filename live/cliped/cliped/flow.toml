@@ -1,0 +1,71 @@
+# The flow the mission sets when it starts. rgb -> cliped (CLIP edge filter
+# on heisenberg's HTP; a dead end: it forwards nothing). Each tile it picks
+# waits in its send queue, near-copies of one sent before behind the new ones
+# (defer_similar), and its reintegration producer delivers them, off the frame
+# path: cliped.reintegration -> webp_encoder ==network==> webp_decode ->
+# verifier (Qwen3-VL on lambda), whose yes/no cliped learns from. The verifier
+# forwards only its yes tiles: -> encoder (H.264, which is all the GCS can
+# show) -> gcs. The GCS also gets the telemetry.
+#
+# The edges to and on the way to the verifier get 30 s: a tile crossing a slow
+# link, or the verifier's first answer (~5 s while the model loads), would
+# otherwise time out and be sent again. Only the verifier's answer settles a
+# tile, so the edges after it don't hold anything up.
+
+[[producers]]
+name = "vehicle.telemetry"
+tokens = 1
+[[producers]]
+name = "vehicle.rgb"
+tokens = 1
+[[producers]]
+name = "local.cliped.reintegration"
+tokens = 1
+
+[[engines]]
+name = "remote.gcs"
+location = "remote"
+[[engines]]
+name = "remote.webp_decode"
+location = "remote"
+[[engines]]
+name = "local.webp_encoder"
+location = "local"
+[[engines]]
+name = "remote.verifier"
+location = "remote"
+[[engines]]
+name = "remote.encoder"
+location = "remote"
+[[engines]]
+name = "local.cliped"
+location = "local"
+
+[[edges]]
+from = "vehicle.telemetry"
+to = "remote.gcs"
+timeout = "1s"
+[[edges]]
+from = "local.cliped.reintegration"
+to = "local.webp_encoder"
+timeout = "30s"
+[[edges]]
+from = "local.webp_encoder"
+to = "remote.webp_decode"
+timeout = "30s"
+[[edges]]
+from = "remote.webp_decode"
+to = "remote.verifier"
+timeout = "30s"
+[[edges]]
+from = "remote.verifier"
+to = "remote.encoder"
+timeout = "1s"
+[[edges]]
+from = "remote.encoder"
+to = "remote.gcs"
+timeout = "1s"
+[[edges]]
+from = "vehicle.rgb"
+to = "local.cliped"
+timeout = "1s"

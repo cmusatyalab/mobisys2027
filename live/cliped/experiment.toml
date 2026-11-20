@@ -1,0 +1,48 @@
+# cliped search: the drone patrols Polygon_1 (map-features.geojson) in a
+# survey pattern at 10 m, gimbal 60 degrees down, while cliped (heisenberg)
+# picks the tiles showing "signs of human activity" and sends them to lambda's
+# Qwen3-VL verifier, whose yes tiles reach the GCS. cliped learns from the
+# verifier's answers, and defer_similar puts near-copies of a tile sent before
+# behind every new one. The mission folder cliped/ is compiled on the vehicle
+# with its flow and map features.
+[[experiments]]
+name = "cliped"
+vehicle = "steppeeagle" # Vehicle name to target
+[experiments.mission]
+# Compiled on the vehicle and started each trial
+file = "cliped"
+# Wait for ENTER before starting each trial: the drone flies
+auto = false
+# 0: press ENTER once the patrol is done (or to stop it early)
+duration = 0
+# cliped loads MobileCLIP and its HTP graph for ~10-20 s after it is listed as
+# running, and misses the start without this
+warmup = 30
+# After ENTER, everything keeps running for 60 s, so the tiles still queued
+# (reintegration over the intermittent link) and the verifier finish
+grace = 60
+[experiments.netsim]
+# The ambient link, measured once at the start of the run
+profiles = ["ambient"]
+interface = "tailscale0"
+port = 9001
+trials = 1
+
+# heisenberg.toml and lambda.toml, for every profile
+[daemons]
+[daemons.lambda]
+orchestrator = true
+prefix = ""
+[daemons.heisenberg]
+prefix = "root@heisenberg:"
+
+[results] # moved off the hosts after each trial
+# cliped's sent.csv (each tile queued) and scored.csv (each frame scored)
+heisenberg = "heisenberg/root/.local/share/steeleagle/files/mb/"
+# The verifier's tiles: in/ every tile, out/ the ones it said yes to. A result,
+# not a catalog: cleared before each trial, so a trial's tiles are its own
+verifier = "lambda/root/.local/share/steeleagle/files/*.verifier"
+[catalogs] # copied off the hosts after each trial
+# cliped's log: what it picked, which tiles it deferred as near-copies, and what it learned
+cliped_log = "heisenberg/root/.local/share/steeleagle/logs/*cliped.log"
+verifier_log = "lambda/root/.local/share/steeleagle/logs/*verifier.log"
