@@ -66,7 +66,7 @@
       class = "person"
       confidence = 0.5
       detector = "yolo"
-      gate = false
+      gate = true
       ignore_new = false
       log_candidates = "mb/candidates.csv"
       # Holds the crops through the outage, as in lab 3.1

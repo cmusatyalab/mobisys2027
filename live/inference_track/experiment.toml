@@ -30,7 +30,7 @@ failpoints = [[60, 60]]
 # GCS wrote (prompt.jpg, which the verifier describes; its text is in the
 # verifier's log), and any text prompt; cleared, so the next trial starts
 # from the args
-end = ["sh", "-c", "d=/root/.local/share/steeleagle/files/verifier_live; mkdir -p \"$d\"; for f in prompt.txt prompt.jpg prompt.jpeg; do [ -e \"$d/$f\" ] && mv \"$d/$f\" \"$EXPERIMENT_TRIAL_DIR/verifier_$f\"; done; rm -f \"$d\"/replaced-*; true"]
+end = ["sh", "-c", "d=/root/.local/share/steeleagle/files/verifier_live; mkdir -p \"$d\"; for p in \"$d\"/prompt.txt \"$d\"/prompt.jpg \"$d\"/prompt.jpeg \"$d\"/description.txt \"$d\"/class.txt \"$d\"/d*.jpg; do [ -e \"$p\" ] && mv \"$p\" \"$EXPERIMENT_TRIAL_DIR/verifier_${p##*/}\"; done; rm -f \"$d\"/replaced-*; true"]
 
 [[uploads]] # the GCS's default flow, which live inference plans with: the trial's flow
 file = "flow.toml"

@@ -787,7 +787,7 @@ def inference() -> list[Dir]:
             qnn(confidence=0.25, early_discard=False, model=YOLO26_SIZES["stock_s"]),
             Service("box_rerank", "box_rerank", "engines/cliped", {
                 "detector": "yolo", "verifier": "verifier", "class": "person", "prompt": START_PROMPT,
-                "rank": "prompt", "confidence": 0.5, "gate": False, "ignore_new": False,
+                "rank": "prompt", "confidence": 0.5, "gate": True, "ignore_new": False,
                 "log_candidates": f"{LOG_DIR}/candidates.csv", **SEND_QUEUE},
                 comment=f'Picks the tracked person among yolo\'s boxes; starts on "{START_PROMPT}" and follows the '
                         "verifier's prompt heartbeat (ignore_new off), so the prompt inference writes; logs "
@@ -814,12 +814,12 @@ def inference() -> list[Dir]:
                                     f"appears at {appears:g} s, +{PROMPT_LATENCY_S:g} s) to the video's end",
                         hooks={"end": ["sh", "-c", (
                             # The verifier's last prompt into the trial: the crop of the
-                            # tracked box the GCS wrote (prompt.jpg; its text is in the
-                            # verifier's log), and any text prompt; cleared, so the next
-                            # trial starts from the args
+                            # tracked box the GCS wrote (prompt.jpg), its distractors
+                            # (d<N>.jpg), the verifier's text of it (description.txt), and
+                            # any text prompt; cleared, so the next trial starts from the args
                             f'd={FILES}/{VERIFIER_LIVE}; mkdir -p "$d"; '
-                            f'for f in prompt.txt prompt.jpg prompt.jpeg; do [ -e "$d/$f" ] && '
-                            f'mv "$d/$f" "$EXPERIMENT_TRIAL_DIR/verifier_$f"; done; '
+                            f'for p in "$d"/prompt.txt "$d"/prompt.jpg "$d"/prompt.jpeg "$d"/description.txt '
+                            f'"$d"/class.txt "$d"/d*.jpg; do [ -e "$p" ] && mv "$p" "$EXPERIMENT_TRIAL_DIR/verifier_${{p##*/}}"; done; '
                             f'rm -f "$d"/replaced-*; true')]}))
     gcs = Service("inferred_mission", "inferred_mission_headless", "defaults/gcs", {
         "vehicle": "drone", "camera": "rgb", "flow": "inference_flow.toml",
@@ -838,10 +838,11 @@ def inference() -> list[Dir]:
         metrics("rx_metrics", True), WEBP_DECODER,
         Service("verifier", "verifier", "engines/cliped", {
             "prompt": START_PROMPT, "question": "box", "min_side": 224, "live": VERIFIER_LIVE, "log_tiles": True,
-            "image_descriptive": True},
+            "image_mode": "contrastive"},
             comment="The VLM (Qwen3-VL 30B, Ollama) that answers box_rerank's crops; its prompt follows "
-                    f"{VERIFIER_LIVE}/prompt.jpg, the GCS's crop of the tracked box, which it describes with its "
-                    "colors and features (image_descriptive), not just its kind; the end hook moves it into the "
+                    f"{VERIFIER_LIVE}/prompt.jpg, the GCS's crop of the tracked box, which it describes by the "
+                    "colors and features that set it apart from the distractors the GCS writes beside it "
+                    "(d<N>.jpg; image_mode contrastive), not just its kind; the end hook moves them into the "
                     "trial directory"),
     ]
     # The inference's planning flow, which binds Track to box_rerank: the same

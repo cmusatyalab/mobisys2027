@@ -115,6 +115,7 @@
       min_side = 224
       prompt = "moving"
       question = "box"
-      # The GCS writes a crop of the tracked box to verifier_live/prompt.jpg:
-      # described with its colors and features, not just its kind
-      image_descriptive = true
+      # The GCS writes a crop of the tracked box to verifier_live/prompt.jpg,
+      # and crops of other people as distractors (d<N>.jpg): described by the
+      # colors and features that set it apart from them, not just its kind
+      image_mode = "contrastive"

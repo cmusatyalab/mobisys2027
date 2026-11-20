@@ -53,7 +53,7 @@
       image = "robodog.webp"
       # Its kind ("a quadruped robot dog"), not a detailed description, which
       # said yes to far more look-alikes (43 of 80 other crops, against 4)
-      image_descriptive = false
+      image_mode = "class"
       question = "box"
 
 [simulator]

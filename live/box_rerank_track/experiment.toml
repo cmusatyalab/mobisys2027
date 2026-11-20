@@ -1,7 +1,7 @@
 # box_rerank tracking (replaces C-OP): the drone tracks the robot dog by
 # box_rerank's pick among YOLO's boxes, on the vehicle, while lambda's Qwen3-VL
 # verifier answers yes/no about its crops in the background, which box_rerank
-# learns from. No instance gate. Scored from mb/boxes.csv (detection_log) and
+# learns from. Instance gate on. Scored from mb/boxes.csv (detection_log) and
 # mb/candidates.csv (box_rerank) with scripts/score_tracking.py.
 [[experiments]]
 name = "box_rerank_tracking"

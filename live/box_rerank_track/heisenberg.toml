@@ -1,6 +1,6 @@
 # heisenberg (Tachyon, on the drone): the Anafi, YOLO on the HTP, and
 # box_rerank, which picks the robot dog among YOLO's boxes for the mission's
-# Track action and sends its crops to lambda's verifier. No instance gate.
+# Track action and sends its crops to lambda's verifier. Instance gate on.
 
 [daemon]
   cert = ""
@@ -51,7 +51,7 @@
       class = "robotic dog"
       confidence = 0.5
       detector = "detection_qnn"
-      gate = false
+      gate = true
       # Keep this prompt for the whole trial: without it, the verifier's
       # prompt heartbeat (its description of robodog.webp, which takes the 30B
       # model about a minute) replaces it mid-trial and clears all learning
