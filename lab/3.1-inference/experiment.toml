@@ -19,7 +19,7 @@ port = 9001
 trials = 1
 failpoints = [[51.9, 168.1]]  # 5 s after the inferred prompt reaches box_rerank (the hoodie appears at 31.2 s, +15.7 s) to the video's end
 [experiments.hooks]
-end = ["sh", "-c", "d=/root/.local/share/steeleagle/files/verifier_live; mkdir -p \"$d\"; [ -e \"$d/prompt.txt\" ] && mv \"$d/prompt.txt\" \"$EXPERIMENT_TRIAL_DIR/verifier_prompt.txt\"; rm -f \"$d\"/replaced-*; true"]
+end = ["sh", "-c", "d=/root/.local/share/steeleagle/files/verifier_live; mkdir -p \"$d\"; for f in prompt.txt prompt.jpg prompt.jpeg; do [ -e \"$d/$f\" ] && mv \"$d/$f\" \"$EXPERIMENT_TRIAL_DIR/verifier_$f\"; done; rm -f \"$d\"/replaced-*; true"]
 
 # Pushed to every daemon once, before the first experiment
 [[uploads]]

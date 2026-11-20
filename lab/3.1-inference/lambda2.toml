@@ -17,7 +17,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/metrics@v4
 csv_path = "mb/h264.csv"
 forward_frames = true
 
-# The headless GCS mission inference: 5 s sections at 1 fps, with RF-DETR's boxes; on Track, checks the tracked box against the verifier's prompt and, if it isn't it, writes its description to the verifier's live prompt. No deploy: the fake drone can't fly
+# The headless GCS mission inference: 5 s sections at 1 fps, with RF-DETR's boxes; on Track, checks the tracked box against the verifier's prompt and, if it isn't it, writes a crop of it to the verifier's live prompt (prompt.jpg). No deploy: the fake drone can't fly
 [[services]]
 name = "inferred_mission"
 type = "engine"
@@ -74,7 +74,7 @@ type = "engine"
 plugin = "webp_decoder"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//defaults/thumbnail@v4_backend_rework"
 
-# The VLM (Qwen3-VL 30B, Ollama) that answers box_rerank's crops; its prompt follows verifier_live/prompt.txt, which the end hook moves into the trial directory
+# The VLM (Qwen3-VL 30B, Ollama) that answers box_rerank's crops; its prompt follows verifier_live/prompt.jpg, the GCS's crop of the tracked box, which it describes with its colors and features (image_descriptive), not just its kind; the end hook moves it into the trial directory
 [[services]]
 name = "verifier"
 type = "engine"
@@ -87,3 +87,4 @@ question = "box"
 min_side = 224
 live = "verifier_live"
 log_tiles = true
+image_descriptive = true

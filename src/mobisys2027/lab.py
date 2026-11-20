@@ -813,8 +813,13 @@ def inference() -> list[Dir]:
                         outage_note=f"{OUTAGE_AFTER_S:g} s after the inferred prompt reaches box_rerank (the hoodie "
                                     f"appears at {appears:g} s, +{PROMPT_LATENCY_S:g} s) to the video's end",
                         hooks={"end": ["sh", "-c", (
+                            # The verifier's last prompt into the trial: the crop of the
+                            # tracked box the GCS wrote (prompt.jpg; its text is in the
+                            # verifier's log), and any text prompt; cleared, so the next
+                            # trial starts from the args
                             f'd={FILES}/{VERIFIER_LIVE}; mkdir -p "$d"; '
-                            f'[ -e "$d/prompt.txt" ] && mv "$d/prompt.txt" "$EXPERIMENT_TRIAL_DIR/verifier_prompt.txt"; '
+                            f'for f in prompt.txt prompt.jpg prompt.jpeg; do [ -e "$d/$f" ] && '
+                            f'mv "$d/$f" "$EXPERIMENT_TRIAL_DIR/verifier_$f"; done; '
                             f'rm -f "$d"/replaced-*; true')]}))
     gcs = Service("inferred_mission", "inferred_mission_headless", "defaults/gcs", {
         "vehicle": "drone", "camera": "rgb", "flow": "inference_flow.toml",
@@ -825,16 +830,19 @@ def inference() -> list[Dir]:
         "auto_deploy": False,
         "ai": {"inferred_mission": {"section_seconds": SECTION_S}}},
         comment=f"The headless GCS mission inference: {SECTION_S:g} s sections at 1 fps, with RF-DETR's boxes; on Track, "
-                "checks the tracked box against the verifier's prompt and, if it isn't it, writes its "
-                "description to the verifier's live prompt. No deploy: the fake drone can't fly")
+                "checks the tracked box against the verifier's prompt and, if it isn't it, writes a "
+                "crop of it to the verifier's live prompt (prompt.jpg). No deploy: the fake drone can't fly")
     lambda2 = [
         metrics("h264_rx", True), gcs, H264_DECODER,
         rfdetr(name="detection"),
         metrics("rx_metrics", True), WEBP_DECODER,
         Service("verifier", "verifier", "engines/cliped", {
-            "prompt": START_PROMPT, "question": "box", "min_side": 224, "live": VERIFIER_LIVE, "log_tiles": True},
+            "prompt": START_PROMPT, "question": "box", "min_side": 224, "live": VERIFIER_LIVE, "log_tiles": True,
+            "image_descriptive": True},
             comment="The VLM (Qwen3-VL 30B, Ollama) that answers box_rerank's crops; its prompt follows "
-                    f"{VERIFIER_LIVE}/prompt.txt, which the end hook moves into the trial directory"),
+                    f"{VERIFIER_LIVE}/prompt.jpg, the GCS's crop of the tracked box, which it describes with its "
+                    "colors and features (image_descriptive), not just its kind; the end hook moves it into the "
+                    "trial directory"),
     ]
     # The inference's planning flow, which binds Track to box_rerank: the same
     # flow as a Flow Builder template, whose nodes are named by host
