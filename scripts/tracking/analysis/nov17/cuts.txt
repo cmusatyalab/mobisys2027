@@ -1,0 +1,16 @@
+cop_amb cop-ambient1 52.519
+cop_amb cop-ambient2 250.918
+cop_amb cop-ambient3 428.628
+cop_del1 cop-delayed1 46.980
+offboard_del offboard-delayed1 61.762
+offboard_del offboard-delayed2 185.952
+offboard_del offboard-delayed3 325.892
+offboard_lim offboard-limited1 49.583
+offboard_lim offboard-limited2 190.524
+offboard_lim offboard-limited3 329.029
+onboard_none onboard-none1 48.582
+onboard_none onboard-none2 177.044
+onboard_none onboard-none3 338.238
+offboard_amb offboard-ambient1 42.276
+offboard_amb offboard-ambient2 160.594
+offboard_amb offboard-ambient3 282.649

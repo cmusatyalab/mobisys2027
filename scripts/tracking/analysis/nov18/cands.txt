@@ -1,0 +1,8 @@
+onboard_none_med 44.4 164.2 280.1
+onboard_none_small 32.4 340.1 456.4 475.6
+cop_amb_small 31.3 153.8 269.6 295.3
+cop_deg_small 46.9 176.0 298.5
+cop_del_small 27.5 168.0 183.3 310.8
+cop_int_small 41.7 185.3 204.8 322.9 354.7
+cop_lim_small 47.7 193.4 330.9 344.7
+cop_intplusden 31.6 192.4 318.6 511.7 636.3 654.1 760.5
