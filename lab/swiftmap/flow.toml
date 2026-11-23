@@ -1,7 +1,18 @@
-# vehicle.rgb -> preprocess -> reachback (drift) ==network==> swiftmap (lambda2)
+# vehicle.rgb -> preprocess -> reachback (drift: stores every frame, dead end)
+# reachback.keyframes, reachback.sendback ==network==> swiftmap (lambda2)
+# One token on each reachback producer: Uriel sends the next only once the
+# link has taken the last one
 
 [[producers]]
 name = "vehicle.rgb"
+
+[[producers]]
+name = "local.reachback.keyframes"
+tokens = 1
+
+[[producers]]
+name = "local.reachback.sendback"
+tokens = 1
 
 [[engines]]
 name = "local.preprocess"
@@ -26,6 +37,11 @@ to = "local.reachback"
 timeout = "2s"
 
 [[edges]]
-from = "local.reachback"
+from = "local.reachback.keyframes"
+to = "remote.swiftmap"
+timeout = "5s"
+
+[[edges]]
+from = "local.reachback.sendback"
 to = "remote.swiftmap"
 timeout = "5s"
