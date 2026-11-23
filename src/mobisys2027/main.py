@@ -46,9 +46,13 @@ experiment, for each of its netsim profiles, and for each trial, the runner:
         power_<profile>_<experiment>.csv     every trial's power timelines, with trial and daemon columns
 
 An experiment's hooks ([experiments.hooks]) are commands run in the
-experiment directory during each trial: start once the mission or flow has
-started (step 3), grace when the grace period starts (step 4), and end once the
-trial has been stopped and collected (step 6), however it ended.
+experiment directory during each trial: setup before the mission or flow
+starts, start once it has started (step 3), grace when the grace period starts
+(step 4), grace_end once the grace period is over, and end once the trial has
+been stopped and collected (step 6), however it ended. With a done hook, the
+runner polls it while the trial runs: once it exits 0 the trial ends early and
+skips the grace period, and in the grace period it ends the wait, so duration
+and grace become the most the trial waits.
 
 Once an experiment's last trial is collected, each directory a result names (or
 its glob matches) is removed from its host (rm -rf), along with anything left in it.
@@ -153,10 +157,13 @@ NETSIM_PROFILES = [
     "normal", "limited", "degraded", "intermittent", "dripfeed", "denied", "malicious", "outage", "delay",
     NONE, AMBIENT,
 ]
-# Points of each trial a hook ([experiments.hooks]) can run at: when the
-# mission or flow starts, when its grace period starts, and once the trial is
-# stopped and collected
-HOOKS = ("start", "grace", "end")
+# Points of each trial a hook ([experiments.hooks]) can run at: before the
+# mission or flow starts, when it starts, when its grace period starts, once
+# the grace period is over, and once the trial is stopped and collected; done
+# is polled instead, and ends the trial's wait once it exits 0
+HOOKS = ("setup", "start", "done", "grace", "grace_end", "end")
+# Seconds between polls of the done hook
+DONE_POLL_S = 2.0
 IPERF_PORT = 5201
 IPERF_DURATION = 30.0
 ROUTE_HEADER = "x-route-key"
@@ -445,7 +452,8 @@ class Experiment:
     power: bool = True
     power_interval: float = POWER_INTERVAL
     # Shell commands (argv lists) run in the experiment directory at points of
-    # each trial: "start", "grace" and "end" (see HOOKS)
+    # each trial: "setup", "start", "grace", "grace_end" and "end", and "done",
+    # polled (see HOOKS)
     hooks: dict[str, list[str]] = field(default_factory=dict)
 
     @property
@@ -2214,19 +2222,20 @@ def wait_grace(grace: float) -> float:
     return time.monotonic() - t0
 
 
-def run_hook(
-    exp: Experiment, hook: str, profile: str, trial: int, trial_dir: Path, vehicle: str,
-) -> None:
-    """Runs the experiment's hook (start, grace or end), if it has one, in
-    the experiment directory, and waits for it. Its output goes to the
-    terminal. It is told about the trial through the environment
-    (EXPERIMENT_NAME, EXPERIMENT_PROFILE, EXPERIMENT_TRIAL,
-    EXPERIMENT_TRIAL_DIR, EXPERIMENT_VEHICLE, EXPERIMENT_HOOK). A hook that
-    fails is only warned about, so the trial still stops and is collected."""
-    cmd = exp.hooks.get(hook)
-    if not cmd:
-        return
-    env = {
+def wait_until_done(limit: float, done, what: str) -> tuple[float, bool]:
+    """Waits up to `limit` seconds, ending early once done() is true, which is
+    checked every DONE_POLL_S. Returns (seconds waited, whether done)."""
+    t0 = time.monotonic()
+    while (left := limit - (time.monotonic() - t0)) > 0:
+        if done():
+            return time.monotonic() - t0, True
+        PROGRESS.sleep(min(DONE_POLL_S, left), what)
+    return time.monotonic() - t0, done()
+
+
+def hook_env(exp: Experiment, hook: str, profile: str, trial: int, trial_dir: Path, vehicle: str) -> dict:
+    """The environment a hook runs in: the runner's, and what it is told about the trial."""
+    return {
         **os.environ,
         "EXPERIMENT_NAME": exp.name,
         "EXPERIMENT_PROFILE": profile,
@@ -2235,14 +2244,45 @@ def run_hook(
         "EXPERIMENT_VEHICLE": vehicle,
         "EXPERIMENT_HOOK": hook,
     }
+
+
+def run_hook(
+    exp: Experiment, hook: str, profile: str, trial: int, trial_dir: Path, vehicle: str,
+) -> None:
+    """Runs the experiment's hook (setup, start, grace, grace_end or end), if
+    it has one, in the experiment directory, and waits for it. Its output goes
+    to the terminal. It is told about the trial through the environment
+    (EXPERIMENT_NAME, EXPERIMENT_PROFILE, EXPERIMENT_TRIAL,
+    EXPERIMENT_TRIAL_DIR, EXPERIMENT_VEHICLE, EXPERIMENT_HOOK). A hook that
+    fails is only warned about, so the trial still stops and is collected."""
+    cmd = exp.hooks.get(hook)
+    if not cmd:
+        return
     log(f"running {hook} hook: {shlex.join(cmd)}")
     try:
-        r = subprocess.run(cmd, cwd=exp.dir, env=env, stdin=subprocess.DEVNULL)
+        r = subprocess.run(cmd, cwd=exp.dir, env=hook_env(exp, hook, profile, trial, trial_dir, vehicle),
+                           stdin=subprocess.DEVNULL)
     except OSError as e:
         log(f"warning: {hook} hook couldn't run: {e}")
         return
     if r.returncode:
         log(f"warning: {hook} hook exited {r.returncode}")
+
+
+def hook_passes(
+    exp: Experiment, hook: str, profile: str, trial: int, trial_dir: Path, vehicle: str,
+) -> bool:
+    """Whether the experiment's hook exits 0, run quietly as run_hook would; false
+    without one, or if it can't run. For the done hook, which is polled."""
+    cmd = exp.hooks.get(hook)
+    if not cmd:
+        return False
+    try:
+        return subprocess.run(cmd, cwd=exp.dir, env=hook_env(exp, hook, profile, trial, trial_dir, vehicle),
+                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                              stderr=subprocess.DEVNULL).returncode == 0
+    except OSError:
+        return False
 
 
 # A flow names its nodes relative to the vehicle, which qualifies them itself:
@@ -2612,6 +2652,7 @@ def run_trial(
     flow = phase.file.read_bytes() if phase.kind == "video" else b""
     if not phase.auto:
         input(f"[{exp.name} {profile} {trial}/{exp.trials}] Press ENTER to start the {phase.kind}... ")
+    run_hook(exp, "setup", profile, trial, trial_dir, vehicle)
 
     if phase.kind == "mission":
         # Before the trial's try, so a mission that never started isn't
@@ -2635,11 +2676,27 @@ def run_trial(
         power.start()
         log(f"{phase.kind} started")
         run_hook(exp, "start", profile, trial, trial_dir, vehicle)
-        wall = wait_for(phase.duration, f"{phase.kind} under {what}")
-        # Everything keeps running through the grace period: the mission or
-        # flow, netsim and the power measurement
-        run_hook(exp, "grace", profile, trial, trial_dir, vehicle)
-        wall += wait_grace(phase.grace)
+        polled = "done" in exp.hooks
+        done = lambda: hook_passes(exp, "done", profile, trial, trial_dir, vehicle)
+        if polled and phase.duration > 0:
+            log(f"running {phase.kind} under {what} for at most {phase.duration:g}s, until done")
+            wall, ended = wait_until_done(phase.duration, done, "trial")
+        else:
+            wall, ended = wait_for(phase.duration, f"{phase.kind} under {what}"), False
+        if ended:
+            log(f"done after {wall:.0f}s; skipping the grace period")
+        else:
+            # Everything keeps running through the grace period: the mission or
+            # flow, netsim and the power measurement
+            run_hook(exp, "grace", profile, trial, trial_dir, vehicle)
+            if polled and phase.grace > 0:
+                log(f"grace period: at most {phase.grace:g}s more, until done")
+                waited, ended = wait_until_done(phase.grace, done, "grace")
+                log(f"{'done' if ended else 'not done'} after {waited:.0f}s of grace")
+            else:
+                waited = wait_grace(phase.grace)
+            wall += waited
+        run_hook(exp, "grace_end", profile, trial, trial_dir, vehicle)
         finished = True
     finally:
         # Before the mission and services stop, so the power timeline covers
@@ -2687,7 +2744,9 @@ def run_experiment(
     )
     if phase.duration_from_video:
         log(f"video {phase.video.name} is {phase.duration:g}s long; each trial runs that long")
-    if phase.grace:
+    if "done" in exp.hooks:
+        log(f"each trial ends once its done hook passes: within that, then up to {phase.grace:g}s of grace")
+    elif phase.grace:
         log(f"each trial keeps running for a {phase.grace:g}s grace period after that")
     for profile in exp.profiles:
         trials = pending_trials(exp, profile, only_trial, overwrite)

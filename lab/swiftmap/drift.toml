@@ -1,0 +1,46 @@
+# drift (normal, limited, outage; degraded and intermittent use drift_swiftmap_<profile>.toml):
+# replays the video, preprocesses each frame to the model input on board
+# (lossless WebP), and sends keyframes and reachback frames to swiftmap
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "drift"
+orchestrator = "lambda2:9000"
+
+# Replays mill_19_front.mp4 (pushed to drift's files directory) once, from SetDataflow on
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+[services.plugin.args]
+video = "mill_19_front.mp4"
+no_loop = false
+telemetry = true
+
+# VGGT-Omega's preprocessing on board: crop and bicubic-resize to the model input
+# (688x384 for these frames) and send lossless WebP, so the server's model input
+# is exactly what it would make from the full frame. image_resolution and
+# patch_size must match the server (VGGT_OMEGA_IMAGE_RESOLUTION, default 512)
+[[services]]
+name = "preprocess"
+type = "engine"
+[services.plugin]
+plugin = "preprocess"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
+[services.plugin.args]
+image_resolution = 512
+patch_size = 16
+lossless = true
+
+[[services]]
+name = "reachback"
+type = "engine"
+[services.plugin]
+plugin = "reachback"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
+[services.plugin.args]
+# 40 px at 1920 wide, scaled to the 688-wide frames preprocess sends
+min_disparity = 14.0

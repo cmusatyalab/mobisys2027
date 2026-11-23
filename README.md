@@ -427,17 +427,26 @@ command's argv: it isn't passed through a shell, so use
 `["sh", "-c", "..."]` for one. Each runs in the experiment directory, and the
 runner waits for it to finish. All are optional.
 
-| Key     | Runs                                                                         |
-|---------|------------------------------------------------------------------------------|
-| `start` | Once the mission or flow has started, along with netsim and the power measurement |
-| `grace` | When the duration is up (or ENTER is pressed), as the grace period starts (even if `grace` is `0`) |
-| `end`   | Once the trial has been stopped and collected, however it ended              |
+| Key         | Runs                                                                         |
+|-------------|------------------------------------------------------------------------------|
+| `setup`     | Before the mission or flow starts (after ENTER, if `auto = false`), e.g. to start a server the flow sends to |
+| `start`     | Once the mission or flow has started, along with netsim and the power measurement |
+| `done`      | Polled every 2 s while the trial runs, quietly; see below                    |
+| `grace`     | When the duration is up (or ENTER is pressed), as the grace period starts (even if `grace` is `0`); skipped if `done` already passed |
+| `grace_end` | Once the grace period is over (or skipped), while everything still runs, before the trial is stopped |
+| `end`       | Once the trial has been stopped and collected, however it ended              |
 
 ```toml
 [experiments.hooks]
 start = ["sh", "-c", "echo start >> hooks.log"]
 end = ["./collect.sh", "--quiet"]
 ```
+
+With a `done` hook, `duration` and `grace` become caps: the runner polls `done`
+during the trial, and once it exits 0 the trial ends early and skips the grace
+period; otherwise the `grace` hook runs and the runner waits up to `grace`
+seconds for `done`. Without one, trials run their full `duration` and `grace`
+as before. `duration_sec` in the stats is the time the trial actually ran.
 
 Each hook gets `EXPERIMENT_NAME`, `EXPERIMENT_PROFILE`, `EXPERIMENT_TRIAL`,
 `EXPERIMENT_TRIAL_DIR` (absolute), `EXPERIMENT_VEHICLE` and `EXPERIMENT_HOOK`
@@ -597,7 +606,8 @@ its `trials`:
    once at the start of the run (see [`[experiments.netsim]`](#experimentsnetsim)).
 4. **Prepare.** For a mission: upload it (unless `no_upload` is set) and load
    it on the vehicle.
-5. **Wait for you.** If `auto = false`: press ENTER to start the trial.
+5. **Wait for you.** If `auto = false`: press ENTER to start the trial. Then
+   the `setup` hook runs.
 6. **Start.** `StartMission`, or `SetDataflow` with the video's flow, as
    written (see [`[[experiments]]`](#experiments)), then start netsim
    as soon as the vehicle answers (except under `none` and `ambient`), and the
@@ -606,7 +616,10 @@ its `trials`:
    Then the `start` hook runs (see [`[experiments.hooks]`](#experimentshooks)).
 7. **Run** for `duration` seconds (for a video with no `duration`, the video's
    length), or until you press ENTER if it is `0`. Then the `grace` hook runs,
-   and the trial keeps running for `grace` more seconds.
+   and the trial keeps running for `grace` more seconds. With a `done` hook,
+   both are caps: the run ends once `done` passes, skipping what is left
+   (see [`[experiments.hooks]`](#experimentshooks)). Then the `grace_end` hook
+   runs.
 8. **Stop.** Stop the power measurement. For a mission: `Hold`, then `StopMission`. These are sent even if
    the run is interrupted. Then every service of the experiment's daemons is
    stopped (`StopService`, the vehicles first), so nothing is still writing to

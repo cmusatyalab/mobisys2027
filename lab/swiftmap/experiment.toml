@@ -1,33 +1,49 @@
-# fake_drone replays mill_19_front.mp4 on fermi -> jpeg_encoder -> reachback (fermi)
+# fake_drone replays mill_19_front.mp4 on drift -> preprocess -> reachback (drift)
 # ==network==> swiftmap on lambda2. swiftmap's output folder is the result, and its
-# engine log a catalog. fermi's power draw is measured (the default).
+# engine log a catalog. drift has no ssh, so its power draw is not measured.
 
 [[experiments]]
 name = "swiftmap"
-vehicle = "drone"
+vehicle = "100.107.26.73.drone" # drift; fermi also registers a "drone"
 [experiments.video]
 video = "mill_19_front.mp4"
 flow = "flow.toml"
 auto = true
-# duration unset: each trial runs for the length of the video
+# Caps, not fixed times: a trial ends once the first batch is mapped with its NFN
+# round (the done hook). If the video runs out first, grace flushes what was
+# collected and waits up to 180 s for that round
+duration = 270
+grace = 180
 [experiments.netsim]
-profiles = ["normal", "limited", "degraded", "intermittent"]
+profiles = ["normal", "limited", "degraded", "intermittent", "outage"]
 interface = "tailscale0"
 port = 9001
-trials = 3
+trials = 1
+failpoints = [[30, 30]]
+# A fresh SwiftMap server each trial (setup); done ends the trial once a batch's
+# NFN round is over; otherwise grace maps the open batch and waits for done;
+# grace_end then finishes and stops the server before results are collected.
+# end only stops a server a failed trial left running
+[experiments.hooks]
+setup = ["./swiftmap_server.sh", "start"]
+done = ["./swiftmap_server.sh", "done"]
+grace = ["./swiftmap_server.sh", "render"]
+grace_end = ["sh", "-c", "./swiftmap_server.sh finish; ./swiftmap_server.sh stop"]
+end = ["./swiftmap_server.sh", "stop"]
 
 # Pushed from videos/ to every daemon once, before the first trial
 [[uploads]]
 file = "mill_19_front.mp4"
+# drift has no ssh to check for it: pushed through the orchestrator
+no_upload = true
 
 [daemons]
 [daemons.lambda2]
 orchestrator = true
 prefix = ""
-[daemons.fermi] # the name fermi's daemon registers with
-prefix = "root@fermi:"
+[daemons.drift] # the name drift's daemon registers with; no prefix, it has no ssh
 
 [results] # moved off the hosts after each trial
-swiftmap = "lambda2/home/xianglic/swiftmap/output/"
+swiftmap = "lambda2/home/ubuntu/xianglic/swiftmap/output/"
 [catalogs] # copied, the sources are kept
 swiftmap_log = "lambda2/root/.local/share/steeleagle/logs/*.swiftmap.log"

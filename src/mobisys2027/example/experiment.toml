@@ -70,9 +70,12 @@ interval = 1 # Seconds per row of the power timeline, >= 0.1 (default 1)
 # EXPERIMENT_PROFILE, EXPERIMENT_TRIAL, EXPERIMENT_TRIAL_DIR, EXPERIMENT_VEHICLE
 # and EXPERIMENT_HOOK in their environment. A failing hook is only warned about
 [experiments.hooks]
-# start = ["sh", "-c", "echo started >> hooks.log"] # once the mission/flow starts
-# grace = ["sh", "-c", "echo grace >> hooks.log"]   # when the grace period starts
-# end = ["sh", "-c", "echo ended >> hooks.log"]     # once the trial is stopped and collected
+# setup = ["sh", "-c", "echo setup >> hooks.log"]     # before the mission/flow starts
+# start = ["sh", "-c", "echo started >> hooks.log"]   # once the mission/flow starts
+# done = ["sh", "-c", "test -f done.flag"]            # polled; exit 0 ends the trial early, skipping grace
+# grace = ["sh", "-c", "echo grace >> hooks.log"]     # when the grace period starts
+# grace_end = ["sh", "-c", "echo grace_end >> hooks.log"] # once the grace period is over
+# end = ["sh", "-c", "echo ended >> hooks.log"]       # once the trial is stopped and collected
 
 # A second experiment: everything above can be set again for it
 # [[experiments]]
