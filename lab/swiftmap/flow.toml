@@ -1,25 +1,25 @@
-# vehicle.rgb -> preprocess -> reachback (drift: stores every frame, dead end)
-# reachback.keyframes, reachback.sendback ==network==> swiftmap (lambda2)
-# One token on each reachback producer: Uriel sends the next only once the
+# vehicle.rgb -> encoder -> framestore (gs25456: stores every frame, dead end)
+# framestore.keyframes, framestore.sendback ==network==> swiftmap (lambda2)
+# One token on each framestore producer: Uriel sends the next only once the
 # link has taken the last one
 
 [[producers]]
 name = "vehicle.rgb"
 
 [[producers]]
-name = "local.reachback.keyframes"
+name = "local.framestore.keyframes"
 tokens = 1
 
 [[producers]]
-name = "local.reachback.sendback"
+name = "local.framestore.sendback"
 tokens = 1
 
 [[engines]]
-name = "local.preprocess"
+name = "local.encoder"
 location = "local"
 
 [[engines]]
-name = "local.reachback"
+name = "local.framestore"
 location = "local"
 
 [[engines]]
@@ -28,20 +28,23 @@ location = "remote"
 
 [[edges]]
 from = "vehicle.rgb"
-to = "local.preprocess"
+to = "local.encoder"
 timeout = "2s"
 
 [[edges]]
-from = "local.preprocess"
-to = "local.reachback"
+from = "local.encoder"
+to = "local.framestore"
 timeout = "2s"
 
+# Both edges to swiftmap: Uriel's deadline is 2 x timeout + 1 s = 31 s, past the
+# slowest frame seen (~20 s for a q75 frame on intermittent), so a frame's token
+# comes back only once it has crossed and frames never share the link
 [[edges]]
-from = "local.reachback.keyframes"
+from = "local.framestore.keyframes"
 to = "remote.swiftmap"
-timeout = "5s"
+timeout = "15s"
 
 [[edges]]
-from = "local.reachback.sendback"
+from = "local.framestore.sendback"
 to = "remote.swiftmap"
-timeout = "5s"
+timeout = "15s"

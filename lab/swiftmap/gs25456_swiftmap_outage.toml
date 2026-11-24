@@ -1,15 +1,15 @@
 # gs25456, outage profile (lossless, as gs25456.toml; needed because a profile without its own
 # file reuses the previous profile's, here intermittent's lossy one):
-# replays the video, preprocesses each frame to the model input on board
-# (lossless WebP), and sends keyframes and reachback frames to swiftmap
+# replays the video, encodes each frame to the model input on board
+# (lossless WebP), and the framestore sends keyframes and frames sent back to swiftmap
 
 [daemon]
 port = 9000
 lcs = 9001
 hostname = "gs25456"
-orchestrator = "lambda2:9000"
+orchestrator = "100.91.118.87:9000" # lambda2 over Tailscale, so netsim shapes the traffic
 
-# Replays mill_19_front.mp4 (pushed to gs25456's files directory) once, from SetDataflow on
+# Replays mill_19_front_115_240.mp4 (pushed to gs25456's files directory) once, from SetDataflow on
 [[services]]
 name = "drone"
 type = "vehicle"
@@ -17,8 +17,9 @@ type = "vehicle"
 plugin = "fake_drone"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
 [services.plugin.args]
-video = "mill_19_front.mp4"
-no_loop = false
+video = "mill_19_front_115_240.mp4"
+no_loop = true
+pad_after = true
 telemetry = true
 
 # VGGT-Omega's preprocessing on board: crop and bicubic-resize to the model input
@@ -26,10 +27,10 @@ telemetry = true
 # is exactly what it would make from the full frame. image_resolution and
 # patch_size must match the server (VGGT_OMEGA_IMAGE_RESOLUTION, default 512)
 [[services]]
-name = "preprocess"
+name = "encoder"
 type = "engine"
 [services.plugin]
-plugin = "preprocess"
+plugin = "encoder"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
 [services.plugin.args]
 image_resolution = 512
@@ -37,11 +38,11 @@ patch_size = 16
 lossless = true
 
 [[services]]
-name = "reachback"
+name = "framestore"
 type = "engine"
 [services.plugin]
-plugin = "reachback"
+plugin = "framestore"
 package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
 [services.plugin.args]
-# 40 px at 1920 wide, scaled to the 688-wide frames preprocess sends
+# 40 px at 1920 wide, scaled to the 688-wide frames the encoder sends
 min_disparity = 14.0

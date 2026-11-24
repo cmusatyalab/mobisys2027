@@ -1,4 +1,4 @@
-# fake_drone replays mill_19_front.mp4 on gs25456 -> preprocess -> reachback (gs25456)
+# fake_drone replays mill_19_front_115_240.mp4 (1:55-4:00 of mill_19_front.mp4, telemetry kept) on gs25456 -> encoder -> framestore (gs25456)
 # ==network==> swiftmap on lambda2. swiftmap's output folder is the result, and its
 # engine log a catalog. gs25456 has no prefix (ssh), so its power draw is not measured.
 
@@ -6,14 +6,15 @@
 name = "swiftmap"
 vehicle = "100.80.166.79.drone" # gs25456; fermi also registers a "drone"
 [experiments.video]
-video = "mill_19_front.mp4"
+video = "mill_19_front_115_240.mp4"
 flow = "flow.toml"
 auto = true
 # Caps, not fixed times: a trial ends once the first batch is mapped with its NFN
-# round (the done hook). If the video runs out first, grace flushes what was
-# collected and waits up to 180 s for that round
-duration = 270
-grace = 180
+# round (the done hook). duration is the 125 s clip. grace lets the server's own
+# round play out after the batch closes: reconstruct and plan ~30 s, reachback up
+# to NFN_REACHBACK_TIMEOUT_S (120 s), remap ~50 s, plus margin
+duration = 125
+grace = 220
 [experiments.netsim]
 profiles = ["normal", "limited", "degraded", "intermittent", "outage"]
 interface = "tailscale0"
@@ -33,8 +34,8 @@ end = ["./swiftmap_server.sh", "stop"]
 
 # Pushed from videos/ to every daemon once, before the first trial
 [[uploads]]
-file = "mill_19_front.mp4"
-# Not on gs25456 yet: pushed through the orchestrator before the first trial (2 GB).
+file = "mill_19_front_115_240.mp4"
+# Not on gs25456 yet: pushed through the orchestrator before the first trial (476 MB).
 # Once it is there, set no_upload = true to skip the push
 no_upload = false
 
