@@ -1,14 +1,15 @@
-# drift, degraded profile only (the runner picks drift_swiftmap_degraded.toml over drift.toml):
+# gs25456, outage profile (lossless, as gs25456.toml; needed because a profile without its own
+# file reuses the previous profile's, here intermittent's lossy one):
 # replays the video, preprocesses each frame to the model input on board
-# (lossy WebP q90), and sends keyframes and reachback frames to swiftmap
+# (lossless WebP), and sends keyframes and reachback frames to swiftmap
 
 [daemon]
 port = 9000
 lcs = 9001
-hostname = "drift"
+hostname = "gs25456"
 orchestrator = "lambda2:9000"
 
-# Replays mill_19_front.mp4 (pushed to drift's files directory) once, from SetDataflow on
+# Replays mill_19_front.mp4 (pushed to gs25456's files directory) once, from SetDataflow on
 [[services]]
 name = "drone"
 type = "vehicle"
@@ -21,7 +22,8 @@ no_loop = false
 telemetry = true
 
 # VGGT-Omega's preprocessing on board: crop and bicubic-resize to the model input
-# (688x384 for these frames) and send it as WebP. image_resolution and
+# (688x384 for these frames) and send lossless WebP, so the server's model input
+# is exactly what it would make from the full frame. image_resolution and
 # patch_size must match the server (VGGT_OMEGA_IMAGE_RESOLUTION, default 512)
 [[services]]
 name = "preprocess"
@@ -32,10 +34,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v
 [services.plugin.args]
 image_resolution = 512
 patch_size = 16
-# Lossy WebP q90 (~64 KB, ~4x smaller than lossless; ~40 dB at the model input),
-# so a frame fits the reachback->swiftmap deadline even on degraded links
-lossless = false
-quality = 90
+lossless = true
 
 [[services]]
 name = "reachback"
