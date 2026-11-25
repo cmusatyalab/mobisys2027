@@ -1,5 +1,5 @@
-# vehicle.rgb -> encoder -> framestore (gs25456: stores every frame, dead end)
-# framestore.keyframes, framestore.sendback ==network==> swiftmap (lambda2)
+# vehicle.rgb -> encoder -> framestore (drift: stores every frame, dead end)
+# framestore.keyframes, framestore.sendback ==network==> swiftmap (gs25456)
 # One token on each framestore producer: Uriel sends the next only once the
 # link has taken the last one
 

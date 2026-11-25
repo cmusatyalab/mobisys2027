@@ -9,7 +9,7 @@
 # $EXPERIMENT_TRIAL_DIR/swiftmap_server.log, so it is kept with the trial.
 set -u
 
-SWIFTMAP_DIR=${SWIFTMAP_DIR:-/home/ubuntu/xianglic/swiftmap}
+SWIFTMAP_DIR=${SWIFTMAP_DIR:-/home/xianglic/Documents/swiftmap}
 PORT=${SWIFTMAP_PORT:-43322}
 CONTROL=${SWIFTMAP_CONTROL_PORT:-43323}
 START_TIMEOUT=${SWIFTMAP_START_TIMEOUT:-300}

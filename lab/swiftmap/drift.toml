@@ -1,0 +1,49 @@
+# drift (normal, limited, outage; degraded and intermittent use drift_swiftmap_<profile>.toml):
+# replays the video, encodes each frame to the model input on board
+# (lossless WebP), and the framestore sends keyframes and frames sent back to swiftmap
+
+[daemon]
+port = 9000
+lcs = 9001
+hostname = "drift"
+orchestrator = "100.80.166.79:9000" # gs25456 over Tailscale, so netsim shapes the traffic
+
+# Replays mill_19_front_115_240.mp4 (pushed to drift's files directory) once, from SetDataflow on,
+# then sends black frames (no telemetry: never keyframes, never stored). The plugin must outlive
+# the video: its flow carries the NFN status, and the reachback request comes after the clip ends
+[[services]]
+name = "drone"
+type = "vehicle"
+[services.plugin]
+plugin = "fake_drone"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//drivers/fake_drone@v4_backend_rework"
+[services.plugin.args]
+video = "mill_19_front_115_240.mp4"
+no_loop = true
+pad_after = true
+telemetry = true
+
+# VGGT-Omega's preprocessing on board: crop and bicubic-resize to the model input
+# (688x384 for these frames) and send lossless WebP, so the server's model input
+# is exactly what it would make from the full frame. image_resolution and
+# patch_size must match the server (VGGT_OMEGA_IMAGE_RESOLUTION, default 512)
+[[services]]
+name = "encoder"
+type = "engine"
+[services.plugin]
+plugin = "encoder"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
+[services.plugin.args]
+image_resolution = 512
+patch_size = 16
+lossless = true
+
+[[services]]
+name = "framestore"
+type = "engine"
+[services.plugin]
+plugin = "framestore"
+package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v4_backend_rework"
+[services.plugin.args]
+# 40 px at 1920 wide, scaled to the 688-wide frames the encoder sends
+min_disparity = 14.0

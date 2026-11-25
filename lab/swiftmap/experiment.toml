@@ -1,10 +1,10 @@
-# fake_drone replays mill_19_front_115_240.mp4 (1:55-4:00 of mill_19_front.mp4, telemetry kept) on gs25456 -> encoder -> framestore (gs25456)
-# ==network==> swiftmap on lambda2. swiftmap's output folder is the result, and its
-# engine log a catalog. gs25456 has no prefix (ssh), so its power draw is not measured.
+# fake_drone replays mill_19_front_115_240.mp4 (1:55-4:00 of mill_19_front.mp4, telemetry kept) on drift -> encoder -> framestore (drift)
+# ==network==> swiftmap on gs25456. swiftmap's output folder is the result, and its
+# engine log a catalog. drift has no prefix (no ssh), so its power draw is not measured.
 
 [[experiments]]
 name = "swiftmap"
-vehicle = "100.80.166.79.drone" # gs25456; fermi also registers a "drone"
+vehicle = "100.107.26.73.drone" # drift
 [experiments.video]
 video = "mill_19_front_115_240.mp4"
 flow = "flow.toml"
@@ -35,17 +35,17 @@ end = ["./swiftmap_server.sh", "stop"]
 # Pushed from videos/ to every daemon once, before the first trial
 [[uploads]]
 file = "mill_19_front_115_240.mp4"
-# Not on gs25456 yet: pushed through the orchestrator before the first trial (476 MB).
+# Not on drift yet: pushed through the orchestrator before the first trial (476 MB).
 # Once it is there, set no_upload = true to skip the push
 no_upload = false
 
 [daemons]
-[daemons.lambda2]
+[daemons.gs25456]
 orchestrator = true
 prefix = ""
-[daemons.gs25456] # the name gs25456's daemon registers with; no prefix
+[daemons.drift] # the name drift's daemon registers with; no prefix
 
 [results] # moved off the hosts after each trial
-swiftmap = "lambda2/home/ubuntu/xianglic/swiftmap/output/"
+swiftmap = "gs25456/home/xianglic/Documents/swiftmap/output/"
 [catalogs] # copied, the sources are kept
-swiftmap_log = "lambda2/root/.local/share/steeleagle/logs/*.swiftmap.log"
+swiftmap_log = "gs25456/home/xianglic/.local/share/steeleagle/logs/*.swiftmap.log"

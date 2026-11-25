@@ -1,14 +1,15 @@
-# gs25456, degraded profile only (the runner picks gs25456_swiftmap_degraded.toml over gs25456.toml):
+# drift, outage profile (lossless, as drift.toml; needed because a profile without its own
+# file reuses the previous profile's, here intermittent's lossy one):
 # replays the video, encodes each frame to the model input on board
-# (lossy WebP q90), and the framestore sends keyframes and frames sent back to swiftmap
+# (lossless WebP), and the framestore sends keyframes and frames sent back to swiftmap
 
 [daemon]
 port = 9000
 lcs = 9001
-hostname = "gs25456"
-orchestrator = "100.91.118.87:9000" # lambda2 over Tailscale, so netsim shapes the traffic
+hostname = "drift"
+orchestrator = "100.80.166.79:9000" # gs25456 over Tailscale, so netsim shapes the traffic
 
-# Replays mill_19_front_115_240.mp4 (pushed to gs25456's files directory) once, from SetDataflow on
+# Replays mill_19_front_115_240.mp4 (pushed to drift's files directory) once, from SetDataflow on
 [[services]]
 name = "drone"
 type = "vehicle"
@@ -22,7 +23,8 @@ pad_after = true
 telemetry = true
 
 # VGGT-Omega's preprocessing on board: crop and bicubic-resize to the model input
-# (688x384 for these frames) and send it as WebP. image_resolution and
+# (688x384 for these frames) and send lossless WebP, so the server's model input
+# is exactly what it would make from the full frame. image_resolution and
 # patch_size must match the server (VGGT_OMEGA_IMAGE_RESOLUTION, default 512)
 [[services]]
 name = "encoder"
@@ -33,10 +35,7 @@ package = "https://github.com/cmusatyalab/steeleagle_plugins//engines/swiftmap@v
 [services.plugin.args]
 image_resolution = 512
 patch_size = 16
-# Lossy WebP q90 (~64 KB, ~4x smaller than lossless; ~40 dB at the model input),
-# so a frame (~5-10 s on degraded) fits the ~31 s framestore->swiftmap deadline
-lossless = false
-quality = 90
+lossless = true
 
 [[services]]
 name = "framestore"
